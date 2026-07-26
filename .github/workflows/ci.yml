@@ -1,0 +1,28 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - uses: astral-sh/setup-uv@v5
+      - name: Install bridge (nl2time)
+        run: cd bridge && npm ci
+      - name: Bridge smoke
+        run: |
+          echo '{"op":"resolve","phrase":"last week","context":{"now":"2026-07-22T08:15:00-04:00","timeZone":"America/New_York","locale":"en-US"}}' \
+            | node bridge/bridge.mjs | grep -q '"ok":true'
+      - name: Grader unit tests
+        run: cd harness && uv run pytest tests -q
+      - name: Validate scenario corpus
+        run: cd harness && uv run atb validate
+      - name: Verify goldens (mechanical + nl2time cross-check)
+        run: cd harness && uv run python ../scripts/verify_goldens.py

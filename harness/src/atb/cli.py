@@ -29,12 +29,13 @@ def main() -> None:
         p = sub.add_parser(name)
         p.add_argument("files", nargs="+", type=Path)
 
-    sub.add_parser("validate", help="Validate all scenario files against the schema")
+    val_p = sub.add_parser("validate", help="Validate scenario files against the schema")
+    val_p.add_argument("domains", nargs="*", help="Domain names (default: all)")
 
     args = parser.parse_args()
 
     if args.command == "validate":
-        domains = load_all()
+        domains = load_all(only=args.domains or None)
         total = sum(len(d.scenarios) for d in domains)
         print(f"OK: {len(domains)} domains, {total} scenarios validate.")
         return
