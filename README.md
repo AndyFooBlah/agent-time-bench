@@ -13,4 +13,4 @@ The benchmark is treatment-neutral; its first experiment measures the lift from 
 - `harness/` — Python (uv) ADK harness: `uv run atb run --model gemini-3.5-flash-lite`
 - `bridge/` — node bridge exposing nl2time to the Python harness and the verifier
 
-Status: scaffold + first domain (personal-finance) live-validated end to end on gemini-3.5-flash-lite.
+Status: full corpus — 10 domains × 10 scenarios, mechanically verified (goldens hand-derived + nl2time cross-checked); authoring the corpus alone surfaced 8 nl2time issues (nl2time#17–#24).

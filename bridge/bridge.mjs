@@ -12,7 +12,8 @@ function makeCtx(context) {
     now: context.now,
     timeZone: context.timeZone,
     locale: context.locale,
-    bias: 'past',
+    // History-search default; callers override per query tense ('future'/'none').
+    bias: context.bias ?? 'past',
   });
 }
 

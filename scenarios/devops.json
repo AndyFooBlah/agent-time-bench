@@ -1,0 +1,407 @@
+{
+  "domain": "devops",
+  "description": "On-call / SRE assistant over UTC-native observability systems: log search, deploy history, and incident records. All backend timestamps are UTC; users speak in local wall time.",
+  "tools": [
+    {
+      "name": "query_logs",
+      "description": "Search service logs. Returns log rows whose timestamp falls in [start_utc, end_utc). Both bounds are required and must be UTC ISO 8601 strings (e.g. 2026-07-01T00:00:00Z); start is inclusive, end is exclusive.",
+      "params": [
+        { "name": "query", "type": "string", "description": "Free-text filter on service name / message (optional; empty returns all rows in range)", "required": false },
+        { "name": "level", "type": "string", "description": "Log level filter: error, warn, or info (optional)", "required": false },
+        { "name": "start_utc", "type": "string", "description": "Range start, UTC ISO 8601 (e.g. 2026-07-01T00:00:00Z), inclusive", "required": true },
+        { "name": "end_utc", "type": "string", "description": "Range end, UTC ISO 8601, exclusive", "required": true }
+      ],
+      "mock": {
+        "kind": "filter-rows",
+        "rowsKey": "logs",
+        "timestampField": "timestamp_utc",
+        "startParam": "start_utc",
+        "endParam": "end_utc"
+      }
+    },
+    {
+      "name": "list_deploys",
+      "description": "List production deploys. Returns deploys whose timestamp falls in [start_utc, end_utc). Both bounds are required and must be UTC ISO 8601 strings (e.g. 2026-07-01T00:00:00Z); start is inclusive, end is exclusive.",
+      "params": [
+        { "name": "start_utc", "type": "string", "description": "Range start, UTC ISO 8601 (e.g. 2026-07-01T00:00:00Z), inclusive", "required": true },
+        { "name": "end_utc", "type": "string", "description": "Range end, UTC ISO 8601, exclusive", "required": true }
+      ],
+      "mock": {
+        "kind": "filter-rows",
+        "rowsKey": "deploys",
+        "timestampField": "timestamp_utc",
+        "startParam": "start_utc",
+        "endParam": "end_utc"
+      }
+    },
+    {
+      "name": "get_latest_incident",
+      "description": "Return the most recent incident on record, with started_utc and resolved_utc timestamps (UTC ISO 8601).",
+      "params": [],
+      "mock": { "kind": "static" }
+    },
+    {
+      "name": "get_last_deploy",
+      "description": "Return the most recent production deploy on record (UTC ISO 8601 timestamp).",
+      "params": [],
+      "mock": { "kind": "static" }
+    }
+  ],
+  "scenarios": [
+    {
+      "id": "dev-01",
+      "title": "deploy-window-spanning-local-midnight",
+      "context": { "now": "2026-07-16T09:30:00-07:00", "timeZone": "America/Los_Angeles", "locale": "en-US" },
+      "user": "We had a deploy window last night between 11pm and 1am. Any errors during the window?",
+      "mocks": {
+        "query_logs": {
+          "rows": [
+            { "service": "checkout-api", "level": "error", "message": "connection pool exhausted", "timestamp_utc": "2026-07-16T06:12:00Z" },
+            { "service": "checkout-api", "level": "error", "message": "migration lock timeout", "timestamp_utc": "2026-07-16T07:41:00Z" },
+            { "service": "checkout-api", "level": "error", "message": "stale config reload", "timestamp_utc": "2026-07-15T23:30:00Z" },
+            { "service": "inventory-svc", "level": "error", "message": "cache miss storm", "timestamp_utc": "2026-07-16T08:25:00Z" }
+          ]
+        },
+        "list_deploys": {
+          "rows": [
+            { "service": "checkout-api", "version": "v3.8.0", "status": "success", "timestamp_utc": "2026-07-16T06:05:00Z" }
+          ]
+        },
+        "get_last_deploy": {
+          "response": { "service": "checkout-api", "version": "v3.8.0", "status": "success", "timestamp_utc": "2026-07-16T06:05:00Z", "deployed_by": "mira" }
+        }
+      },
+      "expect": {
+        "toolCalls": [
+          {
+            "tool": "query_logs",
+            "graded": ["start_utc", "end_utc"],
+            "argKinds": { "start_utc": "instant-start", "end_utc": "instant-end" },
+            "admissible": [
+              { "start_utc": "2026-07-16T06:00:00Z", "end_utc": "2026-07-16T08:00:00Z" }
+            ],
+            "verifyPhrase": {
+              "phrase": "last night between 11pm and 1am",
+              "disagreementNote": "nl2time truncates the midnight-spanning window at local midnight: it returns [11pm, midnight) = [2026-07-16T06:00Z, 2026-07-16T07:00Z), dropping the 12am-1am half. The benchmark encodes the full conversational window 11pm-1am = [06:00Z, 08:00Z); nl2time issue to file."
+            }
+          }
+        ],
+        "response": { "checks": [ { "kind": "count", "expected": 2, "unit": "errors?|failures?", "note": "06:12Z (11:12pm PDT) and 07:41Z (12:41am PDT) are inside the window; the 23:30Z row (4:30pm PDT Wed) and 08:25Z row (1:25am PDT) are outside" } ] }
+      },
+      "directions": ["nl2time", "time2nl"],
+      "rationale": "Now = THURSDAY Jul 16 2026, 9:30am PDT (UTC-7). 'Last night between 11pm and 1am' = Wed Jul 15 23:00 PT .. Thu Jul 16 01:00 PT = [2026-07-16T06:00Z, 2026-07-16T08:00Z) — the window spans local midnight but sits entirely inside UTC day Jul 16. In range: 06:12Z = Wed 11:12pm PDT and 07:41Z = Thu 12:41am PDT (count 2). Traps: reading '11pm-1am' as UTC gives [2026-07-15T23:00Z, 2026-07-16T01:00Z), which selects only the 23:30Z decoy (4:30pm PDT — hours before the window); the 08:25Z row (1:25am PDT) is just after the window. nl2time disagrees on the end bound (see disagreementNote), which under its reading would also drop the 07:41Z row."
+    },
+    {
+      "id": "dev-02",
+      "title": "deploys-yesterday-berlin",
+      "context": { "now": "2026-07-21T10:05:00+02:00", "timeZone": "Europe/Berlin", "locale": "en-DE" },
+      "user": "How many deploys went out yesterday?",
+      "mocks": {
+        "list_deploys": {
+          "rows": [
+            { "service": "payments-api", "version": "v2.4.1", "status": "success", "timestamp_utc": "2026-07-19T22:45:00Z" },
+            { "service": "payments-api", "version": "v2.4.2", "status": "success", "timestamp_utc": "2026-07-19T23:20:00Z" },
+            { "service": "web-storefront", "version": "v8.1.0", "status": "success", "timestamp_utc": "2026-07-20T13:05:00Z" },
+            { "service": "search-svc", "version": "v1.12.0", "status": "success", "timestamp_utc": "2026-07-20T22:30:00Z" },
+            { "service": "web-storefront", "version": "v8.0.9", "status": "success", "timestamp_utc": "2026-07-18T09:00:00Z" }
+          ]
+        },
+        "get_last_deploy": {
+          "response": { "service": "search-svc", "version": "v1.12.0", "status": "success", "timestamp_utc": "2026-07-20T22:30:00Z", "deployed_by": "jonas" }
+        }
+      },
+      "expect": {
+        "toolCalls": [
+          {
+            "tool": "list_deploys",
+            "graded": ["start_utc", "end_utc"],
+            "argKinds": { "start_utc": "instant-start", "end_utc": "instant-end" },
+            "admissible": [
+              { "start_utc": "2026-07-19T22:00:00Z", "end_utc": "2026-07-20T22:00:00Z" }
+            ],
+            "verifyPhrase": { "phrase": "yesterday" }
+          }
+        ],
+        "response": { "checks": [ { "kind": "count", "expected": 3, "unit": "deploys?|deployments?|releases?", "note": "Two just-after-midnight CEST deploys (22:45Z, 23:20Z on Jul 19 UTC) plus the 13:05Z afternoon deploy; the 22:30Z row is already Tuesday in Berlin" } ] }
+      },
+      "directions": ["nl2time", "time2nl"],
+      "rationale": "Now = TUESDAY Jul 21 2026, 10:05 CEST (UTC+2, Berlin summer time). Yesterday = civil Monday Jul 20 in Berlin: [Jul 20 00:00 CEST, Jul 21 00:00 CEST) = [2026-07-19T22:00Z, 2026-07-20T22:00Z). In range: 2026-07-19T22:45Z = Mon 00:45 CEST, 2026-07-19T23:20Z = Mon 01:20 CEST, 2026-07-20T13:05Z = Mon 15:05 CEST → count 3. Traps: naive UTC-day bounds [Jul 20 00:00Z, Jul 21 00:00Z) drop both after-midnight-CEST deploys (their UTC day is Jul 19) and include the 22:30Z decoy (Tue 00:30 CEST) → count 2, so the counts differ. The Sat Jul 18 row is outside all readings. Bridge cross-check: nl2time resolves 'yesterday' in this context to exactly [2026-07-19T22:00Z, 2026-07-20T22:00Z)."
+    },
+    {
+      "id": "dev-03",
+      "title": "errors-past-6-hours",
+      "context": { "now": "2026-07-08T14:20:00-04:00", "timeZone": "America/New_York", "locale": "en-US" },
+      "user": "How many errors have we logged in the past 6 hours?",
+      "mocks": {
+        "query_logs": {
+          "rows": [
+            { "service": "auth-svc", "level": "error", "message": "token refresh failed", "timestamp_utc": "2026-07-08T13:05:00Z" },
+            { "service": "billing-svc", "level": "error", "message": "invoice job crashed", "timestamp_utc": "2026-07-08T17:48:00Z" },
+            { "service": "auth-svc", "level": "error", "message": "token refresh failed", "timestamp_utc": "2026-07-08T11:55:00Z" },
+            { "service": "billing-svc", "level": "error", "message": "invoice job crashed", "timestamp_utc": "2026-07-07T20:00:00Z" }
+          ]
+        }
+      },
+      "expect": {
+        "toolCalls": [
+          {
+            "tool": "query_logs",
+            "graded": ["start_utc", "end_utc"],
+            "argKinds": { "start_utc": "instant-start", "end_utc": "instant-end" },
+            "admissible": [
+              { "start_utc": "2026-07-08T12:20:00Z", "end_utc": "2026-07-08T18:20:00Z" }
+            ],
+            "verifyPhrase": { "phrase": "the past 6 hours" }
+          }
+        ],
+        "response": { "checks": [ { "kind": "count", "expected": 2, "unit": "errors?|failures?", "note": "13:05Z and 17:48Z are inside; 11:55Z is 25 minutes before the window start, and the Jul 7 row is a day earlier" } ] }
+      },
+      "directions": ["nl2time", "time2nl"],
+      "rationale": "Now = WEDNESDAY Jul 8 2026, 2:20pm EDT = 2026-07-08T18:20Z. 'The past 6 hours' is a pure offset from now, timezone-independent: [now-6h, now) = [2026-07-08T12:20Z, 2026-07-08T18:20Z). In range: 13:05Z (9:05am EDT) and 17:48Z (1:48pm EDT) → count 2. The 11:55Z row (7:55am EDT) is 25 minutes before the start, and the Jul 7 20:00Z row is the previous day. Honest baseline scenario — no UTC/local trap; the instant-end tolerance covers a 18:19:59-style end. Bridge cross-check: nl2time resolves 'the past 6 hours' to exactly [12:20Z, 18:20Z)."
+    },
+    {
+      "id": "dev-04",
+      "title": "outage-start-and-duration-local",
+      "context": { "now": "2026-07-20T09:45:00-05:00", "timeZone": "America/Chicago", "locale": "en-US" },
+      "user": "When did the last outage start, and how long did it last?",
+      "mocks": {
+        "get_latest_incident": {
+          "response": {
+            "incident_id": "INC-2231",
+            "title": "API gateway outage",
+            "severity": "SEV1",
+            "status": "resolved",
+            "started_utc": "2026-07-19T02:40:00Z",
+            "resolved_utc": "2026-07-19T03:27:00Z"
+          }
+        },
+        "query_logs": {
+          "rows": [
+            { "service": "api-gateway", "level": "error", "message": "upstream connect timeout", "timestamp_utc": "2026-07-19T02:41:00Z" },
+            { "service": "api-gateway", "level": "error", "message": "upstream connect timeout", "timestamp_utc": "2026-07-19T03:05:00Z" }
+          ]
+        }
+      },
+      "expect": {
+        "response": {
+          "checks": [
+            { "kind": "civilDay", "instant": "2026-07-19T02:40:00Z", "tz": "America/Chicago", "rejectUtcDay": true, "note": "Started 9:40pm CDT Saturday July 18; the UTC timestamp reads July 19 — must answer July 18" },
+            { "kind": "clockTime", "instant": "2026-07-19T02:40:00Z", "tz": "America/Chicago", "rejectUtcClock": true, "note": "If a start time is given it must be 9:40 pm local, not 2:40" },
+            { "kind": "regex", "accept": "47\\s*min", "note": "Duration 02:40Z..03:27Z = 47 minutes (timezone-invariant)" }
+          ]
+        }
+      },
+      "directions": ["time2nl"],
+      "rationale": "Pure time->NL: get_latest_incident takes no arguments and returns started_utc 2026-07-19T02:40Z / resolved_utc 2026-07-19T03:27Z. In America/Chicago (CDT, UTC-5) the start is SATURDAY Jul 18, 9:40pm — the UTC calendar day (Jul 19) and wall clock (2:40) are both wrong answers, hence rejectUtcDay and rejectUtcClock (verified: days and wall clocks differ). Duration = 03:27 - 02:40 = 47 minutes, timezone-invariant, graded by regex. The query_logs rows (02:41Z, 03:05Z) keep any supplementary log query consistent with the incident story. Now = Monday Jul 20, 9:45am CDT."
+    },
+    {
+      "id": "dev-05",
+      "title": "what-shipped-on-friday",
+      "context": { "now": "2026-07-13T09:00:00-06:00", "timeZone": "America/Denver", "locale": "en-US" },
+      "user": "What shipped on Friday?",
+      "mocks": {
+        "list_deploys": {
+          "rows": [
+            { "service": "billing-api", "version": "v2.14.0", "status": "success", "timestamp_utc": "2026-07-10T16:20:00Z" },
+            { "service": "auth-service", "version": "v1.9.2", "status": "success", "timestamp_utc": "2026-07-11T03:35:00Z" },
+            { "service": "search-indexer", "version": "v4.0.3", "status": "success", "timestamp_utc": "2026-07-10T02:15:00Z" },
+            { "service": "notifications-worker", "version": "v0.7.1", "status": "success", "timestamp_utc": "2026-07-13T14:00:00Z" }
+          ]
+        },
+        "get_last_deploy": {
+          "response": { "service": "notifications-worker", "version": "v0.7.1", "status": "success", "timestamp_utc": "2026-07-13T14:00:00Z", "deployed_by": "sam" }
+        }
+      },
+      "expect": {
+        "toolCalls": [
+          {
+            "tool": "list_deploys",
+            "graded": ["start_utc", "end_utc"],
+            "argKinds": { "start_utc": "instant-start", "end_utc": "instant-end" },
+            "admissible": [
+              { "start_utc": "2026-07-10T06:00:00Z", "end_utc": "2026-07-11T06:00:00Z" }
+            ],
+            "verifyPhrase": { "phrase": "on Friday" }
+          }
+        ],
+        "response": {
+          "checks": [
+            { "kind": "regex", "accept": "auth[- ]?service", "note": "The Friday 9:35pm MDT deploy (UTC day Saturday) must be reported" },
+            { "kind": "regex", "accept": "billing[- ]?api", "reject": "search[- ]?indexer", "note": "billing-api shipped Friday morning; search-indexer is the Thursday-evening decoy whose UTC day reads Friday" }
+          ]
+        }
+      },
+      "directions": ["nl2time", "time2nl"],
+      "rationale": "Now = MONDAY Jul 13 2026, 9:00am MDT (UTC-6). Past-tense 'shipped on Friday' = the most recent Friday, Jul 10, as a civil day in Denver: [Jul 10 00:00 MDT, Jul 11 00:00 MDT) = [2026-07-10T06:00Z, 2026-07-11T06:00Z). In range: billing-api 16:20Z (Fri 10:20am MDT) and auth-service 2026-07-11T03:35Z (Fri 9:35pm MDT — UTC day Saturday, dropped by naive UTC-day bounds). The search-indexer row 2026-07-10T02:15Z is Thu Jul 9 8:15pm MDT — its UTC day reads Friday, so naive bounds include exactly the wrong row. The Monday row is out of range everywhere. Bridge cross-check: nl2time's primary candidate for 'Friday' (past bias) is exactly [2026-07-10T06:00Z, 2026-07-11T06:00Z)."
+    },
+    {
+      "id": "dev-06",
+      "title": "deploys-today-kolkata",
+      "context": { "now": "2026-08-05T18:45:00+05:30", "timeZone": "Asia/Kolkata", "locale": "en-IN" },
+      "user": "How many deploys have gone out today?",
+      "mocks": {
+        "list_deploys": {
+          "rows": [
+            { "service": "rider-app-api", "version": "v6.2.0", "status": "success", "timestamp_utc": "2026-08-04T19:05:00Z" },
+            { "service": "maps-tiles", "version": "v3.3.7", "status": "success", "timestamp_utc": "2026-08-05T05:50:00Z" },
+            { "service": "rider-app-api", "version": "v6.1.9", "status": "success", "timestamp_utc": "2026-08-04T17:40:00Z" }
+          ]
+        },
+        "get_last_deploy": {
+          "response": { "service": "maps-tiles", "version": "v3.3.7", "status": "success", "timestamp_utc": "2026-08-05T05:50:00Z", "deployed_by": "asha" }
+        }
+      },
+      "expect": {
+        "toolCalls": [
+          {
+            "tool": "list_deploys",
+            "graded": ["start_utc", "end_utc"],
+            "argKinds": { "start_utc": "instant-start", "end_utc": "instant-end" },
+            "admissible": [
+              { "start_utc": "2026-08-04T18:30:00Z", "end_utc": "2026-08-05T13:15:00Z" },
+              { "start_utc": "2026-08-04T18:30:00Z", "end_utc": "2026-08-05T18:30:00Z" }
+            ],
+            "verifyPhrase": { "phrase": "today" }
+          }
+        ],
+        "response": { "checks": [ { "kind": "count", "expected": 2, "unit": "deploys?|deployments?|releases?", "note": "The 00:35 IST deploy (19:05Z on Aug 4 UTC) plus the 11:20 IST deploy; the 17:40Z row is still Tuesday 11:10pm IST" } ] }
+      },
+      "directions": ["nl2time", "time2nl"],
+      "rationale": "Now = WEDNESDAY Aug 5 2026, 6:45pm IST (Asia/Kolkata, non-integer offset +05:30) = 2026-08-05T13:15Z. Today = civil Wed Aug 5 IST, starting Aug 5 00:00 IST = 2026-08-04T18:30Z. The in-progress end admits now itself (2026-08-05T13:15Z) or end of day (Aug 6 00:00 IST = 2026-08-05T18:30Z); no rows lie between 13:15Z and 18:30Z, so both tuples select the same rows. In range: 2026-08-04T19:05Z = Wed 00:35 IST (UTC day Aug 4 — dropped by naive UTC-day bounds) and 2026-08-05T05:50Z = Wed 11:20 IST → count 2. The 2026-08-04T17:40Z decoy is Tue 11:10pm IST, out of range. Bridge cross-check: nl2time resolves 'today' to exactly [2026-08-04T18:30Z, 2026-08-05T18:30Z), matching the second tuple."
+    },
+    {
+      "id": "dev-07",
+      "title": "health-check-failures-over-the-weekend",
+      "context": { "now": "2026-07-14T11:30:00-04:00", "timeZone": "America/New_York", "locale": "en-US" },
+      "user": "How many times did the health check fail over the weekend?",
+      "mocks": {
+        "query_logs": {
+          "rows": [
+            { "service": "edge-proxy", "level": "error", "message": "health check failed: /healthz 503", "timestamp_utc": "2026-07-11T15:10:00Z" },
+            { "service": "edge-proxy", "level": "error", "message": "health check failed: /healthz 503", "timestamp_utc": "2026-07-12T02:30:00Z" },
+            { "service": "edge-proxy", "level": "error", "message": "health check failed: /healthz timeout", "timestamp_utc": "2026-07-12T18:45:00Z" },
+            { "service": "edge-proxy", "level": "error", "message": "health check failed: /healthz 503", "timestamp_utc": "2026-07-11T02:00:00Z" }
+          ]
+        }
+      },
+      "expect": {
+        "toolCalls": [
+          {
+            "tool": "query_logs",
+            "graded": ["start_utc", "end_utc"],
+            "argKinds": { "start_utc": "instant-start", "end_utc": "instant-end" },
+            "admissible": [
+              { "start_utc": "2026-07-11T04:00:00Z", "end_utc": "2026-07-13T04:00:00Z" }
+            ],
+            "verifyPhrase": { "phrase": "over the weekend" }
+          }
+        ],
+        "response": { "checks": [ { "kind": "count", "expected": 3, "unit": "times?|failures?|fails?", "note": "Sat 11:10am, Sat 10:30pm (02:30Z Sunday UTC), Sun 2:45pm; the 02:00Z row is Friday 10pm EDT despite its Saturday UTC day" } ] }
+      },
+      "directions": ["nl2time", "time2nl"],
+      "rationale": "Now = TUESDAY Jul 14 2026, 11:30am EDT. 'Over the weekend' (past bias) = the just-finished weekend, Sat Jul 11 00:00 ET .. Mon Jul 13 00:00 ET = [2026-07-11T04:00Z, 2026-07-13T04:00Z). In range: 15:10Z Sat 11:10am, 2026-07-12T02:30Z = Sat 10:30pm EDT (UTC day Sunday), 18:45Z Sun 2:45pm → count 3. Trap: the 2026-07-11T02:00Z row is Friday 10:00pm EDT — its UTC day reads Saturday, so naive UTC-day weekend bounds [Jul 11 00:00Z, Jul 13 00:00Z) count 4, not 3. Bridge cross-check: nl2time resolves 'over the weekend' to exactly [2026-07-11T04:00Z, 2026-07-13T04:00Z)."
+    },
+    {
+      "id": "dev-08",
+      "title": "deploys-week-of-the-6th",
+      "context": { "now": "2026-07-22T15:40:00-04:00", "timeZone": "America/New_York", "locale": "en-US" },
+      "user": "How many deploys went out the week of the 6th?",
+      "mocks": {
+        "list_deploys": {
+          "rows": [
+            { "service": "orders-api", "version": "v5.0.0", "status": "success", "timestamp_utc": "2026-07-06T18:00:00Z" },
+            { "service": "orders-api", "version": "v5.0.1", "status": "success", "timestamp_utc": "2026-07-08T15:30:00Z" },
+            { "service": "email-svc", "version": "v2.2.0", "status": "success", "timestamp_utc": "2026-07-10T20:45:00Z" },
+            { "service": "email-svc", "version": "v2.2.1", "status": "success", "timestamp_utc": "2026-07-14T16:00:00Z" },
+            { "service": "orders-api", "version": "v4.9.9", "status": "success", "timestamp_utc": "2026-07-02T13:00:00Z" }
+          ]
+        },
+        "get_last_deploy": {
+          "response": { "service": "email-svc", "version": "v2.2.1", "status": "success", "timestamp_utc": "2026-07-14T16:00:00Z", "deployed_by": "dana" }
+        }
+      },
+      "expect": {
+        "toolCalls": [
+          {
+            "tool": "list_deploys",
+            "graded": ["start_utc", "end_utc"],
+            "argKinds": { "start_utc": "instant-start", "end_utc": "instant-end" },
+            "admissible": [
+              { "start_utc": "2026-07-05T04:00:00Z", "end_utc": "2026-07-12T04:00:00Z" },
+              { "start_utc": "2026-07-06T04:00:00Z", "end_utc": "2026-07-13T04:00:00Z" }
+            ],
+            "verifyPhrase": { "phrase": "the week of the 6th" }
+          }
+        ],
+        "response": { "checks": [ { "kind": "count", "expected": 3, "unit": "deploys?|deployments?|releases?", "note": "Mon Jul 6, Wed Jul 8, Fri Jul 10 rows; Jul 14 and Jul 2 fall outside both week conventions" } ] }
+      },
+      "directions": ["nl2time", "time2nl"],
+      "rationale": "Now = WEDNESDAY Jul 22 2026, 3:40pm EDT (midweek). Jul 6 2026 is a MONDAY. 'The week of the 6th' admits Sunday-start (en-US CLDR): Sun Jul 5..Sun Jul 12 = [2026-07-05T04:00Z, 2026-07-12T04:00Z), and Monday-start (ISO): Mon Jul 6..Mon Jul 13 = [2026-07-06T04:00Z, 2026-07-13T04:00Z). All three in-range rows sit Mon Jul 6 (2:00pm EDT) .. Fri Jul 10 (4:45pm EDT), inside BOTH readings; no rows on the disputed edge days (Sun Jul 5, Sun Jul 12), so the count is 3 under either tuple. Decoys: Tue Jul 14 (following week) and Thu Jul 2 (prior week). Honest baseline — no UTC/local trap; all rows are midday UTC=local-day. Bridge cross-check: nl2time's primary candidate is the Sunday-start tuple."
+    },
+    {
+      "id": "dev-09",
+      "title": "last-deploy-when-utc-rollover",
+      "context": { "now": "2026-07-25T10:20:00-07:00", "timeZone": "America/Los_Angeles", "locale": "en-US" },
+      "user": "When did the last production deploy go out — what day and time?",
+      "mocks": {
+        "get_last_deploy": {
+          "response": { "service": "web-frontend", "version": "v5.2.1", "status": "success", "timestamp_utc": "2026-07-25T00:10:00Z", "deployed_by": "priya" }
+        },
+        "list_deploys": {
+          "rows": [
+            { "service": "web-frontend", "version": "v5.2.1", "status": "success", "timestamp_utc": "2026-07-25T00:10:00Z" },
+            { "service": "billing-api", "version": "v2.13.4", "status": "success", "timestamp_utc": "2026-07-23T18:40:00Z" }
+          ]
+        }
+      },
+      "expect": {
+        "response": {
+          "checks": [
+            { "kind": "civilDay", "instant": "2026-07-25T00:10:00Z", "tz": "America/Los_Angeles", "rejectUtcDay": true, "note": "5:10pm PDT Friday July 24; the UTC timestamp reads July 25 — must answer July 24" },
+            { "kind": "weekday", "instant": "2026-07-25T00:10:00Z", "tz": "America/Los_Angeles", "note": "Local weekday is Friday (UTC weekday is Saturday)" },
+            { "kind": "clockTime", "instant": "2026-07-25T00:10:00Z", "tz": "America/Los_Angeles", "rejectUtcClock": true, "note": "Must be 5:10 pm local, not 12:10 am" }
+          ]
+        }
+      },
+      "directions": ["time2nl"],
+      "rationale": "Pure time->NL: get_last_deploy takes no arguments and returns timestamp 2026-07-25T00:10Z. In America/Los_Angeles (PDT, UTC-7) that is FRIDAY Jul 24, 5:10pm — the UTC reading is Saturday Jul 25, 12:10am, so both the calendar day and the wall clock differ (rejectUtcDay/rejectUtcClock verified). Now = Saturday Jul 25, 10:20am PDT. The list_deploys rows repeat the same newest deploy so a range-based lookup stays consistent with the static answer."
+    },
+    {
+      "id": "dev-10",
+      "title": "errors-day-before-yesterday-month-boundary",
+      "context": { "now": "2026-08-02T09:10:00-04:00", "timeZone": "America/New_York", "locale": "en-US" },
+      "user": "Any errors the day before yesterday? How many, and from which service?",
+      "mocks": {
+        "query_logs": {
+          "rows": [
+            { "service": "payment-service", "level": "error", "message": "OOM killed, restarting", "timestamp_utc": "2026-08-01T02:30:00Z" },
+            { "service": "payment-service", "level": "error", "message": "OOM killed, restarting", "timestamp_utc": "2026-08-01T03:10:00Z" },
+            { "service": "payment-service", "level": "error", "message": "settlement retry exhausted", "timestamp_utc": "2026-07-31T14:15:00Z" },
+            { "service": "cron-runner", "level": "error", "message": "nightly export failed", "timestamp_utc": "2026-07-31T01:20:00Z" }
+          ]
+        }
+      },
+      "expect": {
+        "toolCalls": [
+          {
+            "tool": "query_logs",
+            "graded": ["start_utc", "end_utc"],
+            "argKinds": { "start_utc": "instant-start", "end_utc": "instant-end" },
+            "admissible": [
+              { "start_utc": "2026-07-31T04:00:00Z", "end_utc": "2026-08-01T04:00:00Z" }
+            ],
+            "verifyPhrase": { "phrase": "the day before yesterday" }
+          }
+        ],
+        "response": {
+          "checks": [
+            { "kind": "count", "expected": 3, "unit": "errors?|failures?", "note": "Fri 10:15am, 10:30pm and 11:10pm EDT; the cron-runner row is Thursday 9:20pm EDT" },
+            { "kind": "regex", "accept": "payment[- ]?service", "reject": "cron[- ]?runner", "note": "All three Friday errors are payment-service; cron-runner only appears under naive UTC-day bounds" }
+          ]
+        }
+      },
+      "directions": ["nl2time", "time2nl"],
+      "rationale": "Now = SUNDAY Aug 2 2026, 9:10am EDT. The day before yesterday = civil Friday Jul 31 in New York: [Jul 31 00:00 ET, Aug 1 00:00 ET) = [2026-07-31T04:00Z, 2026-08-01T04:00Z) — the window's end crosses the July/August month boundary in UTC. In range: 2026-08-01T02:30Z = Fri 10:30pm EDT and 2026-08-01T03:10Z = Fri 11:10pm EDT (both UTC-day Aug 1 — dropped by naive UTC-day bounds) plus 14:15Z Fri 10:15am → count 3, all payment-service. The cron-runner row 2026-07-31T01:20Z is Thu Jul 30 9:20pm EDT — its UTC day reads Jul 31, so naive bounds [Jul 31 00:00Z, Aug 1 00:00Z) select it and count 2. Bridge cross-check: nl2time resolves 'the day before yesterday' to exactly [2026-07-31T04:00Z, 2026-08-01T04:00Z)."
+    }
+  ]
+}

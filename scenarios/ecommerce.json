@@ -1,0 +1,373 @@
+{
+  "domain": "ecommerce",
+  "description": "Shopping assistant with order search, delivery tracking, and return-window tools.",
+  "tools": [
+    {
+      "name": "search_orders",
+      "description": "Search the user's order history. Returns orders whose placement timestamp falls in [ordered_after, ordered_before). Both bounds are required and must be UTC ISO 8601 strings (e.g. 2026-07-01T04:00:00Z); ordered_after is inclusive, ordered_before is exclusive.",
+      "params": [
+        { "name": "query", "type": "string", "description": "Free-text item or brand filter (optional; empty returns all orders in range)", "required": false },
+        { "name": "ordered_after", "type": "string", "description": "Range start, UTC ISO 8601, inclusive", "required": true },
+        { "name": "ordered_before", "type": "string", "description": "Range end, UTC ISO 8601, exclusive", "required": true }
+      ],
+      "mock": {
+        "kind": "filter-rows",
+        "rowsKey": "orders",
+        "timestampField": "ordered_utc",
+        "startParam": "ordered_after",
+        "endParam": "ordered_before"
+      }
+    },
+    {
+      "name": "get_next_delivery",
+      "description": "Return the user's next incoming delivery: the shipment with the soonest estimated arrival, including its estimated arrival timestamp (eta_utc, UTC ISO 8601).",
+      "params": [],
+      "mock": { "kind": "static" }
+    },
+    {
+      "name": "get_delivery_status",
+      "description": "Return the shipment status for one order (carrier, status, and UTC ISO 8601 timestamps such as shipped_utc / delivered_utc / eta_utc where applicable).",
+      "params": [
+        { "name": "order_id", "type": "string", "description": "The order to look up", "required": true }
+      ],
+      "mock": { "kind": "static" }
+    },
+    {
+      "name": "get_return_window",
+      "description": "Return the return-window deadline for one order as return_by_utc (UTC ISO 8601). Returns postmarked after this instant are rejected.",
+      "params": [
+        { "name": "order_id", "type": "string", "description": "The order to look up", "required": true }
+      ],
+      "mock": { "kind": "static" }
+    }
+  ],
+  "scenarios": [
+    {
+      "id": "eco-01",
+      "title": "orders-last-30-days",
+      "context": { "now": "2026-07-23T18:30:00-04:00", "timeZone": "America/New_York", "locale": "en-US" },
+      "user": "How many orders have I placed in the last 30 days?",
+      "mocks": {
+        "search_orders": {
+          "rows": [
+            { "order_id": "A-1001", "name": "USB-C cable", "total": 12.99, "ordered_utc": "2026-06-20T15:00:00Z" },
+            { "order_id": "A-1002", "name": "standing desk mat", "total": 49.5, "ordered_utc": "2026-06-25T17:30:00Z" },
+            { "order_id": "A-1003", "name": "espresso beans", "total": 21.0, "ordered_utc": "2026-07-05T13:10:00Z" },
+            { "order_id": "A-1004", "name": "paperback novel", "total": 14.25, "ordered_utc": "2026-07-18T21:45:00Z" }
+          ]
+        }
+      },
+      "expect": {
+        "toolCalls": [
+          {
+            "tool": "search_orders",
+            "graded": ["ordered_after", "ordered_before"],
+            "argKinds": { "ordered_after": "instant-start", "ordered_before": "instant-end" },
+            "admissible": [
+              { "ordered_after": "2026-06-23T22:30:00Z", "ordered_before": "2026-07-23T22:30:00Z" },
+              { "ordered_after": "2026-06-24T04:00:00Z", "ordered_before": "2026-07-24T04:00:00Z" },
+              { "ordered_after": "2026-06-23T04:00:00Z", "ordered_before": "2026-07-24T04:00:00Z" },
+              { "ordered_after": "2026-06-23T04:00:00Z", "ordered_before": "2026-07-23T22:30:00Z" },
+              { "ordered_after": "2026-06-24T04:00:00Z", "ordered_before": "2026-07-23T22:30:00Z" }
+            ],
+            "verifyPhrase": { "phrase": "the last 30 days" }
+          }
+        ],
+        "response": { "checks": [ { "kind": "count", "expected": 3, "unit": "orders?|purchases?|times?", "note": "Jun 25, Jul 5, Jul 18 rows; the Jun 20 row predates every admissible start" } ] }
+      },
+      "directions": ["nl2time", "time2nl"],
+      "rationale": "Now = THURSDAY Jul 23 2026, 6:30pm EDT (UTC-4) = 2026-07-23T22:30Z. Day-grain 'last 30 days' admits the exact sliding window now-30d..now = [2026-06-23T22:30Z, 2026-07-23T22:30Z) (this is what nl2time returns) and calendar-day variants: 30 calendar days ending today = Jun 24 00:00 ET..Jul 24 00:00 ET = [2026-06-24T04:00Z, 2026-07-24T04:00Z); day-floored start with either end (Jun 23 00:00 ET = 04:00Z start; end = now or end of today Jul 24 00:00 ET = 04:00Z). Rows deliberately avoid Jun 23-24 (the disputed start days) and today, so every admissible tuple selects exactly the same 3 rows: Jun 25 (1:30pm EDT), Jul 5, Jul 18. The Jun 20 row (33 days back) is outside all readings. Trap-free baseline scenario."
+    },
+    {
+      "id": "eco-02",
+      "title": "last-weekend-orders",
+      "context": { "now": "2026-07-15T09:30:00-05:00", "timeZone": "America/Chicago", "locale": "en-US" },
+      "user": "What did I order last weekend?",
+      "mocks": {
+        "search_orders": {
+          "rows": [
+            { "order_id": "B-2201", "name": "trail running shoes", "total": 89.99, "ordered_utc": "2026-07-11T19:45:00Z" },
+            { "order_id": "B-2202", "name": "yoga mat", "total": 32.0, "ordered_utc": "2026-07-13T00:40:00Z" },
+            { "order_id": "B-2203", "name": "phone case", "total": 18.5, "ordered_utc": "2026-07-11T02:30:00Z" },
+            { "order_id": "B-2204", "name": "water filter", "total": 27.75, "ordered_utc": "2026-07-06T16:00:00Z" }
+          ]
+        }
+      },
+      "expect": {
+        "toolCalls": [
+          {
+            "tool": "search_orders",
+            "graded": ["ordered_after", "ordered_before"],
+            "argKinds": { "ordered_after": "instant-start", "ordered_before": "instant-end" },
+            "admissible": [
+              { "ordered_after": "2026-07-11T05:00:00Z", "ordered_before": "2026-07-13T05:00:00Z" }
+            ],
+            "verifyPhrase": { "phrase": "last weekend" }
+          }
+        ],
+        "response": {
+          "checks": [
+            { "kind": "regex", "accept": "yoga mat", "reject": "phone case|water filter", "note": "Sunday-evening yoga mat (UTC Monday) must be included; Friday-night phone case (UTC Saturday) and the Jul 6 water filter must not" },
+            { "kind": "regex", "accept": "running shoes|trail", "note": "Saturday-afternoon shoes order must be included" }
+          ]
+        }
+      },
+      "directions": ["nl2time", "time2nl"],
+      "rationale": "Now = WEDNESDAY Jul 15 2026, 9:30am CDT (UTC-5) — midweek, so 'last weekend' is unambiguously the just-past Sat-Sun: Sat Jul 11 00:00 CT..Mon Jul 13 00:00 CT = [2026-07-11T05:00Z, 2026-07-13T05:00Z), which nl2time confirms. Double UTC trap: the yoga mat (2026-07-13T00:40Z) is Sunday Jul 12, 7:40pm CDT — inside — though its UTC day is Monday; the phone case (2026-07-11T02:30Z) is Friday Jul 10, 9:30pm CDT — outside — though its UTC day is Saturday. Naive UTC-day weekend bounds [Jul 11 00Z, Jul 13 00Z) swap exactly those two. Correct contents: trail running shoes (Sat 2:45pm CDT) and yoga mat; water filter (Mon Jul 6) is a range decoy. No count check — a listing answer need not state a number."
+    },
+    {
+      "id": "eco-03",
+      "title": "next-delivery-eta-day",
+      "context": { "now": "2026-07-08T09:00:00-04:00", "timeZone": "America/New_York", "locale": "en-US" },
+      "user": "When's my next delivery arriving? What day should I expect it?",
+      "mocks": {
+        "get_next_delivery": {
+          "response": { "order_id": "A-0993", "name": "noise-cancelling headphones", "carrier": "UPS", "status": "in transit", "eta_utc": "2026-07-10T00:00:00Z" }
+        },
+        "get_delivery_status": {
+          "response": { "order_id": "A-0993", "name": "noise-cancelling headphones", "carrier": "UPS", "status": "in transit", "eta_utc": "2026-07-10T00:00:00Z" }
+        },
+        "search_orders": {
+          "rows": [
+            { "order_id": "A-0993", "name": "noise-cancelling headphones", "total": 249.0, "ordered_utc": "2026-07-06T14:20:00Z" }
+          ]
+        }
+      },
+      "expect": {
+        "response": {
+          "checks": [
+            { "kind": "civilDay", "instant": "2026-07-10T00:00:00Z", "tz": "America/New_York", "rejectUtcDay": true, "note": "ETA is Thursday July 9, 8:00pm EDT; the UTC timestamp reads July 10 — answering July 10 fails" },
+            { "kind": "clockTime", "instant": "2026-07-10T00:00:00Z", "tz": "America/New_York", "rejectUtcClock": true, "note": "If a time is given it must be 8:00 pm local, not midnight" }
+          ]
+        }
+      },
+      "directions": ["time2nl"],
+      "rationale": "Pure time->NL. Now = Wednesday Jul 8 2026, 9:00am EDT (UTC-4). get_next_delivery (no time params) returns eta_utc 2026-07-10T00:00:00Z, which in America/New_York is Thursday July 9, 8:00pm — tomorrow local, but the day after tomorrow by UTC calendar day. Correct answers name July 9 (rejectUtcDay is real: UTC day Jul 10 != local day Jul 9). clockTime fires only if a clock time appears; then it must be 8:00pm, not 12:00am (rejectUtcClock real: 00:00 vs 20:00). get_delivery_status is mocked identically and a search_orders row (ordered Jul 6, 10:20am EDT) exists in case the model looks the order up first."
+    },
+    {
+      "id": "eco-04",
+      "title": "return-window-closes-midnight",
+      "context": { "now": "2026-07-28T16:45:00-07:00", "timeZone": "America/Los_Angeles", "locale": "en-US" },
+      "user": "When does the return window on my headphones order close? What's the last day I can send them back?",
+      "mocks": {
+        "get_return_window": {
+          "response": { "order_id": "C-3310", "name": "wireless headphones", "policy": "30 days from delivery", "return_by_utc": "2026-08-01T06:59:00Z" }
+        },
+        "get_delivery_status": {
+          "response": { "order_id": "C-3310", "name": "wireless headphones", "carrier": "FedEx", "status": "delivered", "delivered_utc": "2026-07-01T20:00:00Z" }
+        },
+        "search_orders": {
+          "rows": [
+            { "order_id": "C-3310", "name": "wireless headphones", "total": 199.0, "ordered_utc": "2026-06-28T18:30:00Z" }
+          ]
+        }
+      },
+      "expect": {
+        "response": {
+          "checks": [
+            { "kind": "civilDay", "instant": "2026-08-01T06:59:00Z", "tz": "America/Los_Angeles", "rejectUtcDay": true, "note": "Deadline is Friday July 31, 11:59pm PDT; the UTC timestamp reads August 1 — answering August 1 fails" },
+            { "kind": "clockTime", "instant": "2026-08-01T06:59:00Z", "tz": "America/Los_Angeles", "rejectUtcClock": true, "note": "If a time is given it must be 11:59 pm local, not 6:59" }
+          ]
+        }
+      },
+      "directions": ["time2nl"],
+      "rationale": "Pure time->NL deadline rendering near local midnight and a month boundary. Now = Tuesday Jul 28 2026, 4:45pm PDT (UTC-7). get_return_window returns return_by_utc 2026-08-01T06:59:00Z = Friday July 31, 11:59pm PDT: the last day to ship a return is July 31; the naive UTC reading says August 1 (rejectUtcDay real). Consistent story: delivered 2026-07-01T20:00:00Z (Jul 1, 1:00pm PDT) + 30 days -> end of July 31 local. clockTime is conditional; if quoted it must be 11:59pm, not 6:59 (rejectUtcClock real). search_orders row (ordered Jun 28, 11:30am PDT) provided for order lookup."
+    },
+    {
+      "id": "eco-05",
+      "title": "orders-in-may",
+      "context": { "now": "2026-06-01T09:00:00-04:00", "timeZone": "America/New_York", "locale": "en-US" },
+      "user": "How many orders did I place in May?",
+      "mocks": {
+        "search_orders": {
+          "rows": [
+            { "order_id": "D-4401", "name": "garden hose", "total": 34.99, "ordered_utc": "2026-05-10T14:20:00Z" },
+            { "order_id": "D-4402", "name": "birthday gift wrap", "total": 11.2, "ordered_utc": "2026-05-22T16:05:00Z" },
+            { "order_id": "D-4403", "name": "patio string lights", "total": 42.0, "ordered_utc": "2026-06-01T02:30:00Z" },
+            { "order_id": "D-4404", "name": "vacuum filter", "total": 16.5, "ordered_utc": "2026-05-01T01:00:00Z" }
+          ]
+        }
+      },
+      "expect": {
+        "toolCalls": [
+          {
+            "tool": "search_orders",
+            "graded": ["ordered_after", "ordered_before"],
+            "argKinds": { "ordered_after": "instant-start", "ordered_before": "instant-end" },
+            "admissible": [
+              { "ordered_after": "2026-05-01T04:00:00Z", "ordered_before": "2026-06-01T04:00:00Z" }
+            ],
+            "verifyPhrase": { "phrase": "in May" }
+          }
+        ],
+        "response": { "checks": [ { "kind": "count", "expected": 3, "unit": "orders?|purchases?|times?", "note": "Garden hose, gift wrap, and the May 31 10:30pm string lights; the Apr 30 9pm vacuum filter is out" } ] }
+      },
+      "directions": ["nl2time", "time2nl"],
+      "rationale": "Now = MONDAY Jun 1 2026, 9:00am EDT — asked just past the month boundary. May 2026 as a civil month in New York (EDT, UTC-4, all month): May 1 00:00 ET..Jun 1 00:00 ET = [2026-05-01T04:00Z, 2026-06-01T04:00Z), confirmed by nl2time. Boundary traps on both ends: the string-lights row (2026-06-01T02:30Z) is Sunday May 31, 10:30pm EDT — inside — though its UTC day is June 1; the vacuum-filter row (2026-05-01T01:00Z) is Thursday April 30, 9:00pm EDT — outside — though its UTC day is May 1. Naive UTC-month bounds [May 1 00Z, Jun 1 00Z) count the filter and drop the lights (still 3, but wrong rows — arg grading catches it); count under correct bounds = 3 (May 10, May 22, May 31)."
+    },
+    {
+      "id": "eco-06",
+      "title": "shipped-yesterday-sydney",
+      "context": { "now": "2026-07-16T09:10:00+10:00", "timeZone": "Australia/Sydney", "locale": "en-AU" },
+      "user": "Did my package ship yesterday?",
+      "mocks": {
+        "get_delivery_status": {
+          "response": { "order_id": "S-7702", "name": "merino wool jumper", "carrier": "AusPost", "status": "in transit", "shipped_utc": "2026-07-14T22:30:00Z", "eta_utc": "2026-07-17T04:00:00Z" }
+        },
+        "get_next_delivery": {
+          "response": { "order_id": "S-7702", "name": "merino wool jumper", "carrier": "AusPost", "status": "in transit", "shipped_utc": "2026-07-14T22:30:00Z", "eta_utc": "2026-07-17T04:00:00Z" }
+        },
+        "search_orders": {
+          "rows": [
+            { "order_id": "S-7702", "name": "merino wool jumper", "total": 129.0, "ordered_utc": "2026-07-13T03:40:00Z" }
+          ]
+        }
+      },
+      "expect": {
+        "response": {
+          "checks": [
+            { "kind": "regex", "accept": "\\byes\\b|shipped yesterday|went out yesterday|did ship", "reject": "\\bno\\b|did not ship|didn't ship|hasn't shipped|has not shipped|two days ago|day before yesterday|jul(?:y)?\\.? 14\\b|\\b14th\\b|\\btuesday\\b", "note": "Shipped Wednesday Jul 15, 8:30am AEST = yesterday. The UTC timestamp reads Tuesday Jul 14 — 'no / two days ago / July 14' are the naive readings" },
+            { "kind": "clockTime", "instant": "2026-07-14T22:30:00Z", "tz": "Australia/Sydney", "rejectUtcClock": true, "note": "If a time is given it must be 8:30 am local, not 10:30 pm" }
+          ]
+        }
+      },
+      "directions": ["time2nl"],
+      "rationale": "Pure time->NL, southern-hemisphere winter. Now = THURSDAY Jul 16 2026, 9:10am AEST (UTC+10 — no DST in July). get_delivery_status returns shipped_utc 2026-07-14T22:30:00Z, which in Sydney is Wednesday July 15, 8:30am — yesterday. Sydney's local day runs AHEAD of UTC: the naive UTC reading says Tuesday July 14, i.e. two days ago, so the naive answer is 'no'. Correct answer: yes (shipped yesterday morning); rejects cover 'no', 'two days ago', 'July 14', and 'Tuesday' (none of which appear in any correct rendering: order placed Monday Jul 13 1:40pm AEST, ETA Friday Jul 17 2:00pm AEST). clockTime conditional: 8:30am local, not the 10:30pm UTC wall clock. get_next_delivery mocked identically; search_orders row provided for lookup."
+    },
+    {
+      "id": "eco-07",
+      "title": "past-48-hours-sydney",
+      "context": { "now": "2026-08-05T17:20:00+10:00", "timeZone": "Australia/Sydney", "locale": "en-AU" },
+      "user": "How many orders have I placed in the past 48 hours?",
+      "mocks": {
+        "search_orders": {
+          "rows": [
+            { "order_id": "S-8801", "name": "electric kettle", "total": 59.0, "ordered_utc": "2026-08-03T09:00:00Z" },
+            { "order_id": "S-8802", "name": "phone charger", "total": 25.0, "ordered_utc": "2026-08-04T00:30:00Z" },
+            { "order_id": "S-8803", "name": "doona cover", "total": 75.5, "ordered_utc": "2026-08-04T13:05:00Z" },
+            { "order_id": "S-8804", "name": "desk fan", "total": 39.99, "ordered_utc": "2026-08-03T05:00:00Z" }
+          ]
+        }
+      },
+      "expect": {
+        "toolCalls": [
+          {
+            "tool": "search_orders",
+            "graded": ["ordered_after", "ordered_before"],
+            "argKinds": { "ordered_after": "instant-start", "ordered_before": "instant-end" },
+            "admissible": [
+              { "ordered_after": "2026-08-03T07:20:00Z", "ordered_before": "2026-08-05T07:20:00Z" }
+            ],
+            "verifyPhrase": { "phrase": "the past 48 hours" }
+          }
+        ],
+        "response": { "checks": [ { "kind": "count", "expected": 3, "unit": "orders?|purchases?|times?", "note": "Kettle (Mon 7pm AEST), charger (Tue 10:30am), doona cover (Tue 11:05pm); the desk fan is 50+ hours back" } ] }
+      },
+      "directions": ["nl2time", "time2nl"],
+      "rationale": "Now = WEDNESDAY Aug 5 2026, 5:20pm AEST (UTC+10) = 2026-08-05T07:20Z. 'Past 48 hours' is an exact sliding window: [now-48h, now) = [2026-08-03T07:20Z, 2026-08-05T07:20Z), confirmed by nl2time. The offset IS the trap: a model that treats the local wall clock as UTC computes [Aug 3 17:20Z, Aug 5 17:20Z), which drops the electric kettle (2026-08-03T09:00Z = Mon Aug 3, 7:00pm AEST — inside the true window, Sydney's local day/evening ahead of UTC) and returns 2. In range: kettle, phone charger (Tue 10:30am AEST), doona cover (2026-08-04T13:05Z = Tue Aug 4, 11:05pm AEST); the desk fan (2026-08-03T05:00Z = Mon 3:00pm AEST) is 50.3 hours before now — outside. Count = 3."
+    },
+    {
+      "id": "eco-08",
+      "title": "friday-before-last-kolkata",
+      "context": { "now": "2026-07-21T11:45:00+05:30", "timeZone": "Asia/Kolkata", "locale": "en-IN" },
+      "user": "How many orders did I place on the Friday before last?",
+      "mocks": {
+        "search_orders": {
+          "rows": [
+            { "order_id": "K-5501", "name": "cricket bat grip", "total": 6.4, "ordered_utc": "2026-07-09T20:00:00Z" },
+            { "order_id": "K-5502", "name": "pressure cooker gasket", "total": 3.1, "ordered_utc": "2026-07-10T07:15:00Z" },
+            { "order_id": "K-5503", "name": "mobile screen guard", "total": 2.5, "ordered_utc": "2026-07-10T19:30:00Z" },
+            { "order_id": "K-5504", "name": "jasmine tea", "total": 4.8, "ordered_utc": "2026-07-17T08:00:00Z" }
+          ]
+        }
+      },
+      "expect": {
+        "toolCalls": [
+          {
+            "tool": "search_orders",
+            "graded": ["ordered_after", "ordered_before"],
+            "argKinds": { "ordered_after": "instant-start", "ordered_before": "instant-end" },
+            "admissible": [
+              { "ordered_after": "2026-07-09T18:30:00Z", "ordered_before": "2026-07-10T18:30:00Z" }
+            ],
+            "verifyPhrase": {
+              "phrase": "Friday before last",
+              "disagreementNote": "nl2time drops the 'before last' qualifier and resolves the phrase as bare 'Friday' -> most recent Friday Jul 17 (alt: upcoming Friday Jul 24). Golden is the Friday one week earlier, Jul 10 — nl2time issue to file"
+            }
+          }
+        ],
+        "response": { "checks": [ { "kind": "count", "expected": 2, "unit": "orders?|purchases?|times?", "note": "Cricket bat grip (Fri 1:30am IST) + gasket (Fri 12:45pm IST); screen guard is Saturday 1:00am IST and jasmine tea is last Friday" } ] }
+      },
+      "directions": ["nl2time", "time2nl"],
+      "rationale": "Now = TUESDAY Jul 21 2026, 11:45am IST (UTC+5:30, half-hour offset zone). Last Friday = Jul 17; 'Friday before last' = Friday Jul 10. As a civil day in Kolkata: [Jul 10 00:00 IST, Jul 11 00:00 IST) = [2026-07-09T18:30Z, 2026-07-10T18:30Z) — bounds land at 18:30Z, never midnight UTC. The cricket bat grip (2026-07-09T20:00Z) is Friday Jul 10, 1:30am IST — inside — though its UTC day is Thursday Jul 9; the screen guard (2026-07-10T19:30Z) is Saturday Jul 11, 1:00am IST — outside — though its UTC day is Friday Jul 10. Naive UTC-day bounds [Jul 10 00Z, Jul 11 00Z) swap those two (count still 2 but wrong rows; arg grading catches it). Jasmine tea (Jul 17, 1:30pm IST) is last Friday, not the one before. Count = 2 (grip + gasket, Fri 12:45pm IST)."
+    },
+    {
+      "id": "eco-09",
+      "title": "orders-in-q2",
+      "context": { "now": "2026-07-11T10:05:00-04:00", "timeZone": "America/New_York", "locale": "en-US" },
+      "user": "How many orders did I place in Q2?",
+      "mocks": {
+        "search_orders": {
+          "rows": [
+            { "order_id": "E-6601", "name": "road bike tires", "total": 68.0, "ordered_utc": "2026-04-15T18:00:00Z" },
+            { "order_id": "E-6602", "name": "picnic blanket", "total": 29.99, "ordered_utc": "2026-05-20T14:30:00Z" },
+            { "order_id": "E-6603", "name": "beach towel set", "total": 24.5, "ordered_utc": "2026-07-01T02:10:00Z" },
+            { "order_id": "E-6604", "name": "sunscreen", "total": 9.99, "ordered_utc": "2026-07-02T15:00:00Z" },
+            { "order_id": "E-6605", "name": "rain jacket", "total": 89.0, "ordered_utc": "2026-04-01T01:00:00Z" }
+          ]
+        }
+      },
+      "expect": {
+        "toolCalls": [
+          {
+            "tool": "search_orders",
+            "graded": ["ordered_after", "ordered_before"],
+            "argKinds": { "ordered_after": "instant-start", "ordered_before": "instant-end" },
+            "admissible": [
+              { "ordered_after": "2026-04-01T04:00:00Z", "ordered_before": "2026-07-01T04:00:00Z" }
+            ],
+            "verifyPhrase": { "phrase": "Q2" }
+          }
+        ],
+        "response": { "checks": [ { "kind": "count", "expected": 3, "unit": "orders?|purchases?|times?", "note": "Bike tires (Apr 15), picnic blanket (May 20), beach towels (Jun 30 10:10pm EDT); rain jacket was Mar 31 9pm EDT and sunscreen is Jul 2" } ] }
+      },
+      "directions": ["nl2time", "time2nl"],
+      "rationale": "Now = Saturday Jul 11 2026, 10:05am EDT. Q2 2026 as civil quarter in New York: Apr 1 00:00 ET..Jul 1 00:00 ET = [2026-04-01T04:00Z, 2026-07-01T04:00Z) — EDT (UTC-4) applies at both bounds (US spring-forward was Mar 8 2026); nl2time confirms. Boundary traps at both ends: the beach towel set (2026-07-01T02:10Z) is Tuesday Jun 30, 10:10pm EDT — inside Q2 — though its UTC day is Jul 1; the rain jacket (2026-04-01T01:00Z) is Tuesday Mar 31, 9:00pm EDT — Q1, outside — though its UTC day is Apr 1. Naive UTC-quarter bounds count the jacket and drop the towels (still 3, wrong rows — arg grading catches it). Sunscreen (Jul 2, 11:00am EDT) is plainly Q3. Count = 3."
+    },
+    {
+      "id": "eco-10",
+      "title": "three-days-ago-order",
+      "context": { "now": "2026-08-04T11:00:00-05:00", "timeZone": "America/Chicago", "locale": "en-US" },
+      "user": "What did I order three days ago?",
+      "mocks": {
+        "search_orders": {
+          "rows": [
+            { "order_id": "F-7701", "name": "desk lamp", "total": 45.0, "ordered_utc": "2026-08-01T17:20:00Z" },
+            { "order_id": "F-7702", "name": "HDMI cable", "total": 13.99, "ordered_utc": "2026-08-02T18:00:00Z" },
+            { "order_id": "F-7703", "name": "notebook set", "total": 9.5, "ordered_utc": "2026-07-30T16:30:00Z" }
+          ]
+        }
+      },
+      "expect": {
+        "toolCalls": [
+          {
+            "tool": "search_orders",
+            "graded": ["ordered_after", "ordered_before"],
+            "argKinds": { "ordered_after": "instant-start", "ordered_before": "instant-end" },
+            "admissible": [
+              { "ordered_after": "2026-08-01T05:00:00Z", "ordered_before": "2026-08-02T05:00:00Z" }
+            ],
+            "verifyPhrase": { "phrase": "three days ago" }
+          }
+        ],
+        "response": {
+          "checks": [
+            { "kind": "regex", "accept": "desk lamp", "reject": "hdmi|notebook", "note": "Only the Saturday Aug 1 desk lamp; the Aug 2 cable (two days ago) and Jul 30 notebooks (five days ago) are decoys" }
+          ]
+        }
+      },
+      "directions": ["nl2time", "time2nl"],
+      "rationale": "Trap-free baseline. Now = TUESDAY Aug 4 2026, 11:00am CDT (UTC-5). Three days ago = the civil day Saturday Aug 1 in Chicago: [Aug 1 00:00 CT, Aug 2 00:00 CT) = [2026-08-01T05:00Z, 2026-08-02T05:00Z), confirmed by nl2time. All rows sit mid-day local (desk lamp Sat 12:20pm, HDMI cable Sun 1:00pm, notebooks Thu Jul 30 11:30am) — no UTC/local day divergence anywhere. Correct answer names the desk lamp only."
+    }
+  ]
+}

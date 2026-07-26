@@ -1,0 +1,429 @@
+{
+  "domain": "calendar",
+  "description": "Personal calendar and scheduling assistant with event search, next-event lookup, and event detail tools.",
+  "tools": [
+    {
+      "name": "find_events",
+      "description": "Search the user's calendar events. Returns events whose start time falls in [start_time, end_time). Both bounds are required and must be UTC ISO 8601 strings (e.g. 2026-07-01T04:00:00Z); start is inclusive, end is exclusive.",
+      "params": [
+        { "name": "query", "type": "string", "description": "Free-text title or attendee filter (optional; empty returns all events in range)", "required": false },
+        { "name": "start_time", "type": "string", "description": "Range start, UTC ISO 8601, inclusive", "required": true },
+        { "name": "end_time", "type": "string", "description": "Range end, UTC ISO 8601, exclusive", "required": true }
+      ],
+      "mock": {
+        "kind": "filter-rows",
+        "rowsKey": "events",
+        "timestampField": "start_utc",
+        "startParam": "start_time",
+        "endParam": "end_time"
+      }
+    },
+    {
+      "name": "get_next_event",
+      "description": "Return the user's next upcoming calendar event (the first event starting after the current moment). Takes no arguments.",
+      "params": [],
+      "mock": { "kind": "static" }
+    },
+    {
+      "name": "get_event_details",
+      "description": "Return full details for a single calendar event, looked up by its event id.",
+      "params": [
+        { "name": "event_id", "type": "string", "description": "The calendar event id, e.g. evt-1234", "required": true }
+      ],
+      "mock": { "kind": "static" }
+    }
+  ],
+  "scenarios": [
+    {
+      "id": "cal-01",
+      "title": "this-coming-tuesday-schedule",
+      "context": { "now": "2026-07-16T09:30:00-04:00", "timeZone": "America/New_York", "locale": "en-US" },
+      "user": "What's on my calendar this coming Tuesday?",
+      "mocks": {
+        "find_events": {
+          "rows": [
+            { "event_id": "evt-1101", "name": "Team standup", "start_utc": "2026-07-21T13:30:00Z" },
+            { "event_id": "evt-1102", "name": "Marketing sync", "start_utc": "2026-07-21T19:00:00Z" },
+            { "event_id": "evt-1103", "name": "Dinner with Sam", "start_utc": "2026-07-22T00:30:00Z" },
+            { "event_id": "evt-1104", "name": "Pottery class", "start_utc": "2026-07-21T00:00:00Z" },
+            { "event_id": "evt-1105", "name": "Budget sync", "start_utc": "2026-07-16T15:00:00Z" },
+            { "event_id": "evt-1106", "name": "Tax advisor call", "start_utc": "2026-07-28T15:00:00Z" }
+          ]
+        },
+        "get_next_event": {
+          "response": { "event_id": "evt-1105", "name": "Budget sync", "start_utc": "2026-07-16T15:00:00Z" }
+        }
+      },
+      "expect": {
+        "toolCalls": [
+          {
+            "tool": "find_events",
+            "graded": ["start_time", "end_time"],
+            "argKinds": { "start_time": "instant-start", "end_time": "instant-end" },
+            "admissible": [
+              { "start_time": "2026-07-21T04:00:00Z", "end_time": "2026-07-22T04:00:00Z" }
+            ],
+            "verifyPhrase": { "phrase": "this coming Tuesday" }
+          }
+        ],
+        "response": {
+          "checks": [
+            { "kind": "regex", "accept": "dinner with sam", "reject": "pottery|tax advisor", "note": "Must include the Tuesday 8:30pm dinner (UTC-day Jul 22); must not include Monday-night pottery (UTC-day Jul 21) or the week-after Tax advisor call" }
+          ]
+        }
+      },
+      "directions": ["nl2time", "time2nl"],
+      "rationale": "Now = THURSDAY Jul 16 2026, 9:30am EDT (UTC-4). 'This coming Tuesday' pins the nearest upcoming Tuesday = Jul 21 (the wording disambiguates against the week-after reading; nl2time agrees: [2026-07-21T04:00Z, 2026-07-22T04:00Z)). Civil day Tue Jul 21 in NY = [Jul 21 00:00 ET, Jul 22 00:00 ET) = [2026-07-21T04:00Z, 2026-07-22T04:00Z). In range: Team standup 13:30Z = 9:30am EDT, Marketing sync 19:00Z = 3:00pm EDT, Dinner with Sam 2026-07-22T00:30Z = Tue Jul 21 8:30pm EDT (UTC day Jul 22 — dropped by naive UTC-day bounds). Excluded: Pottery class 2026-07-21T00:00Z = MON Jul 20 8:00pm EDT (UTC day Jul 21 — wrongly included by naive UTC-day bounds), Budget sync today Thu Jul 16, Tax advisor call Tue Jul 28 (week after). get_next_event is mocked consistently: next event after now is the 11:00am Budget sync today."
+    },
+    {
+      "id": "cal-02",
+      "title": "tomorrow-morning-meetings",
+      "context": { "now": "2026-07-14T08:00:00-07:00", "timeZone": "America/Los_Angeles", "locale": "en-US" },
+      "user": "How many meetings do I have tomorrow morning?",
+      "mocks": {
+        "find_events": {
+          "rows": [
+            { "event_id": "evt-1201", "name": "Team standup", "start_utc": "2026-07-15T16:00:00Z" },
+            { "event_id": "evt-1202", "name": "1:1 with Priya", "start_utc": "2026-07-15T18:00:00Z" },
+            { "event_id": "evt-1203", "name": "Lunch with recruiter", "start_utc": "2026-07-15T19:30:00Z" },
+            { "event_id": "evt-1204", "name": "Gym session", "start_utc": "2026-07-14T14:00:00Z" },
+            { "event_id": "evt-1205", "name": "Trivia night", "start_utc": "2026-07-15T04:00:00Z" }
+          ]
+        },
+        "get_next_event": {
+          "response": { "event_id": "evt-1205", "name": "Trivia night", "start_utc": "2026-07-15T04:00:00Z" }
+        }
+      },
+      "expect": {
+        "toolCalls": [
+          {
+            "tool": "find_events",
+            "graded": ["start_time", "end_time"],
+            "argKinds": { "start_time": "instant-start", "end_time": "instant-end" },
+            "admissible": [
+              { "start_time": "2026-07-15T13:00:00Z", "end_time": "2026-07-15T19:00:00Z" },
+              { "start_time": "2026-07-15T07:00:00Z", "end_time": "2026-07-15T19:00:00Z" }
+            ],
+            "verifyPhrase": { "phrase": "tomorrow morning" }
+          }
+        ],
+        "response": {
+          "checks": [
+            { "kind": "count", "expected": 2, "unit": "meetings?|events?", "note": "Standup 9:00am + 1:1 11:00am PDT; the 12:30pm lunch is afternoon and Trivia night (2026-07-15T04:00Z) is TONIGHT 9pm PDT, not tomorrow" },
+            { "kind": "regex", "accept": "standup|priya", "reject": "trivia", "note": "Trivia night's UTC timestamp reads tomorrow-morning-ish (04:00Z Jul 15) but it is Tuesday 9:00pm PDT tonight" }
+          ]
+        }
+      },
+      "directions": ["nl2time", "time2nl"],
+      "rationale": "Now = TUESDAY Jul 14 2026, 8:00am PDT (UTC-7). Tomorrow = civil Wednesday Jul 15 in LA. 'Morning' admits the 6am-noon reading (nl2time primary: [2026-07-15T13:00Z, 2026-07-15T19:00Z)) and the midnight-noon reading ([2026-07-15T07:00Z, 2026-07-15T19:00Z)). In range under BOTH tuples: Team standup 16:00Z = 9:00am PDT and 1:1 with Priya 18:00Z = 11:00am PDT (no rows in the disputed 00:00-06:00 sliver, so counts agree). Excluded: Lunch with recruiter 19:30Z = 12:30pm PDT (afternoon), Gym today Tue 7:00am, and the trap: Trivia night 2026-07-15T04:00Z = Tue Jul 14 9:00pm PDT tonight — its UTC day is Jul 15, so a naive UTC 'tomorrow' window would count it. get_next_event mocked consistently: next event after 8:00am Tue is tonight's Trivia (04:00Z)."
+    },
+    {
+      "id": "cal-03",
+      "title": "this-weekend-kolkata",
+      "context": { "now": "2026-07-10T16:30:00+05:30", "timeZone": "Asia/Kolkata", "locale": "en-IN" },
+      "user": "How many events do I have this weekend?",
+      "mocks": {
+        "find_events": {
+          "rows": [
+            { "event_id": "evt-1301", "name": "Airport pickup - cousins arrive", "start_utc": "2026-07-10T22:00:00Z" },
+            { "event_id": "evt-1302", "name": "Wedding reception", "start_utc": "2026-07-11T13:30:00Z" },
+            { "event_id": "evt-1303", "name": "Cricket match", "start_utc": "2026-07-12T04:30:00Z" },
+            { "event_id": "evt-1304", "name": "Office review", "start_utc": "2026-07-10T12:00:00Z" },
+            { "event_id": "evt-1305", "name": "Team offsite", "start_utc": "2026-07-13T04:30:00Z" }
+          ]
+        },
+        "get_next_event": {
+          "response": { "event_id": "evt-1301", "name": "Airport pickup - cousins arrive", "start_utc": "2026-07-10T22:00:00Z" }
+        }
+      },
+      "expect": {
+        "toolCalls": [
+          {
+            "tool": "find_events",
+            "graded": ["start_time", "end_time"],
+            "argKinds": { "start_time": "instant-start", "end_time": "instant-end" },
+            "admissible": [
+              { "start_time": "2026-07-10T18:30:00Z", "end_time": "2026-07-12T18:30:00Z" }
+            ],
+            "verifyPhrase": {
+              "phrase": "this weekend",
+              "disagreementNote": "Asked on a Friday, nl2time's primary reading of 'this weekend' is the PREVIOUS weekend (Jul 4-5); the upcoming weekend Jul 11-12 appears only as an alternative — the benchmark encodes the upcoming weekend, the ordinary conversational reading on a Friday"
+            }
+          }
+        ],
+        "response": {
+          "checks": [
+            { "kind": "count", "expected": 3, "unit": "events?|things?|plans?", "note": "Airport pickup Sat 3:30am + Wedding reception Sat 7pm + Cricket Sun 10am IST" },
+            { "kind": "regex", "accept": "airport pickup", "note": "The Sat 3:30am IST pickup (2026-07-10T22:00Z, UTC day Friday) must be counted as part of the weekend" }
+          ]
+        }
+      },
+      "directions": ["nl2time", "time2nl"],
+      "rationale": "Now = FRIDAY Jul 10 2026, 4:30pm IST (UTC+5:30, non-integer offset). This weekend = Sat Jul 11 + Sun Jul 12 in Kolkata: [Jul 11 00:00 IST, Jul 13 00:00 IST) = [2026-07-10T18:30Z, 2026-07-12T18:30Z) — bounds land at half-hour UTC marks. In range: Airport pickup 2026-07-10T22:00Z = Sat Jul 11 3:30am IST (UTC day still Friday — dropped by naive UTC-weekend bounds [Jul 11T00Z, Jul 13T00Z)), Wedding reception 2026-07-11T13:30Z = Sat 7:00pm IST, Cricket match 2026-07-12T04:30Z = Sun 10:00am IST. Excluded: Office review 2026-07-10T12:00Z = Fri 5:30pm IST (today, pre-weekend) and Team offsite 2026-07-13T04:30Z = Mon 10:00am IST. Count = 3. get_next_event mocked consistently: next event after Fri 4:30pm IST is the 3:30am airport pickup."
+    },
+    {
+      "id": "cal-04",
+      "title": "week-of-august-3rd",
+      "context": { "now": "2026-07-28T09:15:00-04:00", "timeZone": "America/New_York", "locale": "en-US" },
+      "user": "How many meetings do I have the week of August 3rd?",
+      "mocks": {
+        "find_events": {
+          "rows": [
+            { "event_id": "evt-1401", "name": "Kickoff: Project Falcon", "start_utc": "2026-08-03T14:00:00Z" },
+            { "event_id": "evt-1402", "name": "Architecture review", "start_utc": "2026-08-05T18:00:00Z" },
+            { "event_id": "evt-1403", "name": "Company all-hands", "start_utc": "2026-08-07T17:00:00Z" },
+            { "event_id": "evt-1404", "name": "Sprint retro", "start_utc": "2026-07-31T19:00:00Z" },
+            { "event_id": "evt-1405", "name": "Quarterly planning", "start_utc": "2026-08-10T14:00:00Z" }
+          ]
+        },
+        "get_next_event": {
+          "response": { "event_id": "evt-1404", "name": "Sprint retro", "start_utc": "2026-07-31T19:00:00Z" }
+        }
+      },
+      "expect": {
+        "toolCalls": [
+          {
+            "tool": "find_events",
+            "graded": ["start_time", "end_time"],
+            "argKinds": { "start_time": "instant-start", "end_time": "instant-end" },
+            "admissible": [
+              { "start_time": "2026-08-02T04:00:00Z", "end_time": "2026-08-09T04:00:00Z" },
+              { "start_time": "2026-08-03T04:00:00Z", "end_time": "2026-08-10T04:00:00Z" }
+            ],
+            "verifyPhrase": {
+              "phrase": "the week of August 3rd",
+              "disagreementNote": "nl2time's primary reading resolves to the week of August 3rd 2025 — a year in the PAST relative to now (Jul 28 2026); the correct 2026 Sunday-start week appears only as an alternative — benchmark encodes the upcoming 2026 week under both week-start conventions"
+            }
+          }
+        ],
+        "response": {
+          "checks": [
+            { "kind": "count", "expected": 3, "unit": "meetings?|events?", "note": "Kickoff Mon Aug 3, Architecture review Wed Aug 5, All-hands Fri Aug 7" }
+          ]
+        }
+      },
+      "directions": ["nl2time", "time2nl"],
+      "rationale": "Trap-free baseline. Now = TUESDAY Jul 28 2026, 9:15am EDT (UTC-4). Aug 3 2026 is a MONDAY. 'The week of August 3rd' admits Sunday-start (Sun Aug 2 - Sat Aug 8: [2026-08-02T04:00Z, 2026-08-09T04:00Z)) and Monday-start (Mon Aug 3 - Sun Aug 9: [2026-08-03T04:00Z, 2026-08-10T04:00Z)). In range under BOTH: Kickoff Mon Aug 3 10:00am EDT (14:00Z), Architecture review Wed Aug 5 2:00pm EDT (18:00Z), All-hands Fri Aug 7 1:00pm EDT (17:00Z) — no rows on the disputed edge days Sun Aug 2 or Sun Aug 9, so counts agree (3/3). Excluded: Sprint retro Fri Jul 31 3:00pm EDT (this week) and Quarterly planning Mon Aug 10 10:00am EDT (the week after; 2026-08-10T14:00Z is past both end bounds). All events are mid-day local, no UTC-day traps. get_next_event mocked consistently: next event after now is Friday's Sprint retro."
+    },
+    {
+      "id": "cal-05",
+      "title": "thursday-review-wall-clock",
+      "context": { "now": "2026-07-27T10:00:00-04:00", "timeZone": "America/New_York", "locale": "en-US" },
+      "user": "What time is my design review with the Berlin team on Thursday?",
+      "mocks": {
+        "find_events": {
+          "rows": [
+            { "event_id": "evt-1501", "name": "Design review - Berlin team", "start_utc": "2026-07-30T17:30:00Z" },
+            { "event_id": "evt-1502", "name": "Budget check-in", "start_utc": "2026-07-30T19:00:00Z" },
+            { "event_id": "evt-1503", "name": "Design review - Berlin team", "start_utc": "2026-07-23T15:00:00Z" },
+            { "event_id": "evt-1504", "name": "Dry cleaning pickup", "start_utc": "2026-07-28T22:00:00Z" }
+          ]
+        },
+        "get_next_event": {
+          "response": { "event_id": "evt-1504", "name": "Dry cleaning pickup", "start_utc": "2026-07-28T22:00:00Z" }
+        },
+        "get_event_details": {
+          "response": { "event_id": "evt-1501", "name": "Design review - Berlin team", "start_utc": "2026-07-30T17:30:00Z", "duration_minutes": 60, "attendees": ["berlin-design@example.com"] }
+        }
+      },
+      "expect": {
+        "toolCalls": [
+          {
+            "tool": "find_events",
+            "graded": ["start_time", "end_time"],
+            "argKinds": { "start_time": "instant-start", "end_time": "instant-end" },
+            "admissible": [
+              { "start_time": "2026-07-30T04:00:00Z", "end_time": "2026-07-31T04:00:00Z" }
+            ],
+            "verifyPhrase": {
+              "phrase": "on Thursday",
+              "disagreementNote": "nl2time's primary reading of bare 'Thursday' from a Monday is LAST Thursday (Jul 23); the upcoming Thursday Jul 30 appears only as an alternative — the question is present/future-tense ('What time IS my design review'), so the benchmark encodes upcoming Thursday"
+            }
+          }
+        ],
+        "response": {
+          "checks": [
+            { "kind": "clockTime", "instant": "2026-07-30T17:30:00Z", "tz": "America/New_York", "rejectUtcClock": true, "note": "Stored 17:30Z; user must hear 1:30 pm Eastern, not 5:30" }
+          ]
+        }
+      },
+      "directions": ["nl2time", "time2nl"],
+      "rationale": "Now = MONDAY Jul 27 2026, 10:00am EDT (UTC-4). The question is future-tense, so 'on Thursday' = the upcoming Thursday Jul 30: [Jul 30 00:00 ET, Jul 31 00:00 ET) = [2026-07-30T04:00Z, 2026-07-31T04:00Z). In range: the Berlin design review 2026-07-30T17:30Z = Thu 1:30pm EDT (the answer; rejectUtcClock guards against reading 5:30 off the stored UTC value) and Budget check-in 19:00Z = 3:00pm EDT (different title, harmless). Excluded: LAST Thursday's design review Jul 23 at 15:00Z = 11:00am EDT — an agent that resolves to the past Thursday retrieves it and reports 11:00am, failing the clockTime check — and Dry cleaning pickup Tue Jul 28 6:00pm EDT. get_next_event mocked consistently: next event after Mon 10:00am is Tuesday's dry cleaning pickup (so the static tool cannot shortcut the search)."
+    },
+    {
+      "id": "cal-06",
+      "title": "meetings-last-week-chicago",
+      "context": { "now": "2026-07-15T08:05:00-05:00", "timeZone": "America/Chicago", "locale": "en-US" },
+      "user": "How many meetings did I have last week?",
+      "mocks": {
+        "find_events": {
+          "rows": [
+            { "event_id": "evt-1601", "name": "Weekly staff meeting", "start_utc": "2026-07-06T15:00:00Z" },
+            { "event_id": "evt-1602", "name": "Vendor call", "start_utc": "2026-07-08T19:00:00Z" },
+            { "event_id": "evt-1603", "name": "1:1 with Dana", "start_utc": "2026-07-09T16:30:00Z" },
+            { "event_id": "evt-1604", "name": "Client debrief call", "start_utc": "2026-07-11T00:00:00Z" },
+            { "event_id": "evt-1605", "name": "Sprint demo", "start_utc": "2026-07-14T15:00:00Z" },
+            { "event_id": "evt-1606", "name": "Board prep", "start_utc": "2026-07-02T16:00:00Z" }
+          ]
+        }
+      },
+      "expect": {
+        "toolCalls": [
+          {
+            "tool": "find_events",
+            "graded": ["start_time", "end_time"],
+            "argKinds": { "start_time": "instant-start", "end_time": "instant-end" },
+            "admissible": [
+              { "start_time": "2026-07-05T05:00:00Z", "end_time": "2026-07-12T05:00:00Z" },
+              { "start_time": "2026-07-06T05:00:00Z", "end_time": "2026-07-13T05:00:00Z" }
+            ],
+            "verifyPhrase": { "phrase": "last week" }
+          }
+        ],
+        "response": {
+          "checks": [
+            { "kind": "count", "expected": 4, "unit": "meetings?|events?|calls?", "note": "Staff meeting Mon 6, Vendor call Wed 8, 1:1 Thu 9, Client debrief Fri 10 (7pm CDT, UTC-day Sat Jul 11)" }
+          ]
+        }
+      },
+      "directions": ["nl2time", "time2nl"],
+      "rationale": "Now = WEDNESDAY Jul 15 2026, 8:05am CDT (UTC-5) — midweek on purpose so both week conventions agree on the interior. Bare 'last week' admits Sunday-start (en-US CLDR): Sun Jul 5 - Sun Jul 12 = [2026-07-05T05:00Z, 2026-07-12T05:00Z) (nl2time primary), and Monday-start (ISO): Mon Jul 6 - Mon Jul 13 = [2026-07-06T05:00Z, 2026-07-13T05:00Z). In range under BOTH: Weekly staff meeting Mon Jul 6 10:00am CDT, Vendor call Wed Jul 8 2:00pm, 1:1 with Dana Thu Jul 9 11:30am, and the trap row Client debrief call 2026-07-11T00:00Z = FRI Jul 10 7:00pm CDT (UTC day Saturday Jul 11 — still inside both readings, but a naive UTC Monday-start window [Jul 6T00Z, Jul 13T00Z) also holds it, so the count survives; its purpose is the local-day derivation in this rationale). No rows on the disputed edge days (Sun Jul 5, Sun Jul 12), so both tuples select the same 4 rows. Excluded: Sprint demo Tue Jul 14 (this week) and Board prep Thu Jul 2 (week before last). Count = 4."
+    },
+    {
+      "id": "cal-07",
+      "title": "next-dentist-auckland",
+      "context": { "now": "2026-07-30T09:00:00+12:00", "timeZone": "Pacific/Auckland", "locale": "en-NZ" },
+      "user": "When is my next dentist appointment?",
+      "mocks": {
+        "find_events": {
+          "rows": [
+            { "event_id": "evt-1701", "name": "Dentist - Dr. Ngata", "start_utc": "2026-06-02T21:30:00Z" },
+            { "event_id": "evt-1702", "name": "Team standup", "start_utc": "2026-07-30T21:30:00Z" },
+            { "event_id": "evt-1703", "name": "Book club", "start_utc": "2026-08-01T03:00:00Z" },
+            { "event_id": "evt-1704", "name": "Dentist - Dr. Ngata", "start_utc": "2026-08-03T21:00:00Z" }
+          ]
+        },
+        "get_next_event": {
+          "response": { "event_id": "evt-1702", "name": "Team standup", "start_utc": "2026-07-30T21:30:00Z" }
+        },
+        "get_event_details": {
+          "response": { "event_id": "evt-1704", "name": "Dentist - Dr. Ngata", "start_utc": "2026-08-03T21:00:00Z", "duration_minutes": 45, "location": "Queen St dental clinic, Auckland" }
+        }
+      },
+      "expect": {
+        "response": {
+          "checks": [
+            { "kind": "civilDay", "instant": "2026-08-03T21:00:00Z", "tz": "Pacific/Auckland", "rejectUtcDay": true, "note": "Stored Aug 3 21:00Z = Tuesday Aug 4, 9:00am NZST — answering 'August 3' is the UTC trap" },
+            { "kind": "weekday", "instant": "2026-08-03T21:00:00Z", "tz": "Pacific/Auckland", "note": "Local weekday is Tuesday (UTC weekday is Monday)" },
+            { "kind": "clockTime", "instant": "2026-08-03T21:00:00Z", "tz": "Pacific/Auckland", "rejectUtcClock": true, "note": "If a time is given it must be 9:00 am local, not 21:00" }
+          ]
+        }
+      },
+      "directions": ["time2nl"],
+      "rationale": "Pure time->NL. Now = THURSDAY Jul 30 2026, 9:00am NZST (UTC+12, southern winter). The next dentist appointment is stored 2026-08-03T21:00Z, which in Pacific/Auckland is TUESDAY Aug 4, 9:00am NZST — the UTC rendering (Monday Aug 3, 9:00pm) differs on day, weekday, and clock, all three trapped. The June 2 21:30Z row (= Wed Jun 3 9:30am NZST) is the previous appointment and must not be reported. get_next_event is mocked consistently with the rows: the next event overall after now is tomorrow's Team standup (2026-07-30T21:30Z = Fri Jul 31 9:30am NZST), not the dentist, so the agent must search. find_events rows carry full data whichever bounds the agent uses (args ungraded here); get_event_details returns the dentist event."
+    },
+    {
+      "id": "cal-08",
+      "title": "invite-details-evening-rollover",
+      "context": { "now": "2026-07-31T17:00:00-04:00", "timeZone": "America/New_York", "locale": "en-US" },
+      "user": "I just got an invite with id evt-4482. What day and time is that event?",
+      "mocks": {
+        "get_event_details": {
+          "response": { "event_id": "evt-4482", "name": "Summer concert - Forest Hills Stadium", "start_utc": "2026-08-15T00:30:00Z", "end_utc": "2026-08-15T03:30:00Z", "location": "Forest Hills, Queens, NY" }
+        }
+      },
+      "expect": {
+        "response": {
+          "checks": [
+            { "kind": "civilDay", "instant": "2026-08-15T00:30:00Z", "tz": "America/New_York", "rejectUtcDay": true, "note": "Stored Aug 15 00:30Z = Friday Aug 14, 8:30pm EDT — answering 'August 15' is the UTC trap" },
+            { "kind": "weekday", "instant": "2026-08-15T00:30:00Z", "tz": "America/New_York", "note": "Local weekday is Friday (UTC weekday is Saturday)" },
+            { "kind": "clockTime", "instant": "2026-08-15T00:30:00Z", "tz": "America/New_York", "rejectUtcClock": true, "note": "Must be 8:30 pm local, not 12:30" }
+          ]
+        }
+      },
+      "directions": ["time2nl"],
+      "rationale": "Pure time->NL, id lookup. Now = FRIDAY Jul 31 2026, 5:00pm EDT (UTC-4, month boundary). The invited event starts 2026-08-15T00:30Z = FRIDAY Aug 14, 8:30pm EDT — an evening event whose UTC day rolls over to Saturday Aug 15. Day, weekday, and clock all differ between UTC and local, so all three checks carry rejection traps. The invite is not yet on the calendar (find_events legitimately returns nothing for it); get_event_details is the intended path and takes no time argument, isolating the rendering direction."
+    },
+    {
+      "id": "cal-09",
+      "title": "next-48-hours-count",
+      "context": { "now": "2026-08-10T11:00:00-04:00", "timeZone": "America/New_York", "locale": "en-US" },
+      "user": "How many events are on my calendar in the next 48 hours?",
+      "mocks": {
+        "find_events": {
+          "rows": [
+            { "event_id": "evt-1901", "name": "Team lunch", "start_utc": "2026-08-10T17:00:00Z" },
+            { "event_id": "evt-1902", "name": "Budget review", "start_utc": "2026-08-11T14:00:00Z" },
+            { "event_id": "evt-1903", "name": "Yoga class", "start_utc": "2026-08-12T11:00:00Z" },
+            { "event_id": "evt-1904", "name": "Morning run club", "start_utc": "2026-08-10T11:00:00Z" },
+            { "event_id": "evt-1905", "name": "Quarterly planning", "start_utc": "2026-08-13T14:00:00Z" }
+          ]
+        },
+        "get_next_event": {
+          "response": { "event_id": "evt-1901", "name": "Team lunch", "start_utc": "2026-08-10T17:00:00Z" }
+        }
+      },
+      "expect": {
+        "toolCalls": [
+          {
+            "tool": "find_events",
+            "graded": ["start_time", "end_time"],
+            "argKinds": { "start_time": "instant-start", "end_time": "instant-end" },
+            "admissible": [
+              { "start_time": "2026-08-10T15:00:00Z", "end_time": "2026-08-12T15:00:00Z" },
+              { "start_time": "2026-08-10T15:00:00Z", "end_time": "2026-08-13T04:00:00Z" }
+            ],
+            "verifyPhrase": { "phrase": "in the next 48 hours" }
+          }
+        ],
+        "response": {
+          "checks": [
+            { "kind": "count", "expected": 3, "unit": "events?|meetings?", "note": "Team lunch Mon 1pm, Budget review Tue 10am, Yoga Wed 7am; the run club already happened this morning and Quarterly planning is Thursday" }
+          ]
+        }
+      },
+      "directions": ["nl2time", "time2nl"],
+      "rationale": "Now = MONDAY Aug 10 2026, 11:00am EDT (UTC-4) = 2026-08-10T15:00Z. 'The next 48 hours' = [now, now+48h) = [2026-08-10T15:00Z, 2026-08-12T15:00Z) (nl2time agrees); also admitted: rounding the end out to the end of Wednesday local ([2026-08-10T15:00Z, 2026-08-13T04:00Z)). In range under BOTH: Team lunch Mon 1:00pm EDT (17:00Z), Budget review Tue 10:00am EDT (14:00Z), Yoga Wed 7:00am EDT (11:00Z); no rows fall between Aug 12 15:00Z and Aug 13 04:00Z, so counts agree (3/3). Excluded: Morning run club 2026-08-10T11:00Z = 7:00am EDT this morning — BEFORE now, wrongly counted by a start-of-today window — and Quarterly planning Thu Aug 13 10:00am EDT (past both end bounds). No UTC-vs-local day traps here (second honest-baseline scenario). get_next_event mocked consistently: next event after 11:00am is the 1:00pm Team lunch."
+    },
+    {
+      "id": "cal-10",
+      "title": "friday-before-last",
+      "context": { "now": "2026-07-28T14:20:00-04:00", "timeZone": "America/New_York", "locale": "en-US" },
+      "user": "How many events did I have on the Friday before last, and what were they?",
+      "mocks": {
+        "find_events": {
+          "rows": [
+            { "event_id": "evt-2001", "name": "Offsite planning workshop", "start_utc": "2026-07-17T14:00:00Z" },
+            { "event_id": "evt-2002", "name": "Improv show", "start_utc": "2026-07-18T00:30:00Z" },
+            { "event_id": "evt-2003", "name": "Networking mixer", "start_utc": "2026-07-17T01:00:00Z" },
+            { "event_id": "evt-2004", "name": "Quarterly review", "start_utc": "2026-07-24T15:00:00Z" }
+          ]
+        }
+      },
+      "expect": {
+        "toolCalls": [
+          {
+            "tool": "find_events",
+            "graded": ["start_time", "end_time"],
+            "argKinds": { "start_time": "instant-start", "end_time": "instant-end" },
+            "admissible": [
+              { "start_time": "2026-07-17T04:00:00Z", "end_time": "2026-07-18T04:00:00Z" }
+            ],
+            "verifyPhrase": {
+              "phrase": "the Friday before last",
+              "disagreementNote": "nl2time parses only 'Friday' (interpreted_as drops the 'before last' modifier) and resolves to last Friday Jul 24; 'Friday before last' means the Friday before that = Jul 17 — benchmark encodes Jul 17"
+            }
+          }
+        ],
+        "response": {
+          "checks": [
+            { "kind": "count", "expected": 2, "unit": "events?|meetings?|things?", "note": "Offsite workshop 10am + Improv show 8:30pm EDT on Fri Jul 17" },
+            { "kind": "regex", "accept": "improv", "reject": "quarterly review", "note": "Must include the Friday-night improv show (UTC-day Sat Jul 18); Quarterly review was LAST Friday (Jul 24), the wrong Friday" }
+          ]
+        }
+      },
+      "directions": ["nl2time", "time2nl"],
+      "rationale": "Now = TUESDAY Jul 28 2026, 2:20pm EDT (UTC-4). Last Friday = Jul 24, so the Friday before last = Jul 17: [Jul 17 00:00 ET, Jul 18 00:00 ET) = [2026-07-17T04:00Z, 2026-07-18T04:00Z). In range: Offsite planning workshop 14:00Z = Fri 10:00am EDT and Improv show 2026-07-18T00:30Z = Fri Jul 17 8:30pm EDT (UTC day Saturday — dropped by naive UTC-day bounds). Excluded: Networking mixer 2026-07-17T01:00Z = THU Jul 16 9:00pm EDT (UTC day Friday Jul 17 — wrongly included by naive UTC-day bounds; the mirror trap) and Quarterly review Fri Jul 24 11:00am EDT (last Friday, the wrong-anchor decoy). Count = 2."
+    }
+  ]
+}

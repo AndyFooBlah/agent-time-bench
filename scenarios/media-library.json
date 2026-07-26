@@ -1,0 +1,385 @@
+{
+  "domain": "media-library",
+  "description": "Photo and video library assistant with capture-time search, upload search, and per-item metadata tools.",
+  "tools": [
+    {
+      "name": "search_media",
+      "description": "Search the user's photo/video library by capture time. Returns media items whose taken_utc falls in [taken_after, taken_before). Both bounds are required and must be UTC ISO 8601 strings (e.g. 2026-07-01T04:00:00Z); taken_after is inclusive, taken_before is exclusive.",
+      "params": [
+        { "name": "query", "type": "string", "description": "Free-text filter over title/album/location (optional; empty returns all media in range)", "required": false },
+        { "name": "taken_after", "type": "string", "description": "Capture-time range start, UTC ISO 8601, inclusive", "required": true },
+        { "name": "taken_before", "type": "string", "description": "Capture-time range end, UTC ISO 8601, exclusive", "required": true }
+      ],
+      "mock": {
+        "kind": "filter-rows",
+        "rowsKey": "media",
+        "timestampField": "taken_utc",
+        "startParam": "taken_after",
+        "endParam": "taken_before"
+      }
+    },
+    {
+      "name": "search_uploads",
+      "description": "Search the user's upload history by upload time (when the file reached the library, not when it was shot). Returns uploads whose uploaded_utc falls in [uploaded_after, uploaded_before). Both bounds are required and must be UTC ISO 8601 strings (e.g. 2026-07-01T04:00:00Z); uploaded_after is inclusive, uploaded_before is exclusive.",
+      "params": [
+        { "name": "uploaded_after", "type": "string", "description": "Upload-time range start, UTC ISO 8601, inclusive", "required": true },
+        { "name": "uploaded_before", "type": "string", "description": "Upload-time range end, UTC ISO 8601, exclusive", "required": true }
+      ],
+      "mock": {
+        "kind": "filter-rows",
+        "rowsKey": "uploads",
+        "timestampField": "uploaded_utc",
+        "startParam": "uploaded_after",
+        "endParam": "uploaded_before"
+      }
+    },
+    {
+      "name": "get_media_info",
+      "description": "Return full metadata for a single media item by id: type, title, taken_utc (UTC ISO 8601), location, and tz_where_taken (IANA zone where the shot was captured).",
+      "params": [
+        { "name": "media_id", "type": "string", "description": "The media item id, e.g. IMG_2214", "required": true }
+      ],
+      "mock": { "kind": "static" }
+    },
+    {
+      "name": "get_latest_upload",
+      "description": "Return the most recent upload to the user's library (file name, uploaded_utc as UTC ISO 8601, size).",
+      "params": [],
+      "mock": { "kind": "static" }
+    }
+  ],
+  "scenarios": [
+    {
+      "id": "med-01",
+      "title": "memorial-day-weekend-photos",
+      "context": { "now": "2026-06-03T09:30:00-04:00", "timeZone": "America/New_York", "locale": "en-US" },
+      "user": "How many photos did I take over Memorial Day weekend?",
+      "mocks": {
+        "search_media": {
+          "rows": [
+            { "media_id": "IMG_4101", "type": "photo", "title": "Cookout prep", "taken_utc": "2026-05-23T16:20:00Z" },
+            { "media_id": "IMG_4102", "type": "photo", "title": "Beach afternoon", "taken_utc": "2026-05-24T20:05:00Z" },
+            { "media_id": "IMG_4103", "type": "photo", "title": "Bonfire", "taken_utc": "2026-05-26T01:30:00Z" },
+            { "media_id": "IMG_4098", "type": "photo", "title": "Office plant", "taken_utc": "2026-05-20T18:00:00Z" },
+            { "media_id": "IMG_4104", "type": "photo", "title": "Commute clouds", "taken_utc": "2026-05-26T19:10:00Z" }
+          ]
+        }
+      },
+      "expect": {
+        "toolCalls": [
+          {
+            "tool": "search_media",
+            "graded": ["taken_after", "taken_before"],
+            "argKinds": { "taken_after": "instant-start", "taken_before": "instant-end" },
+            "admissible": [
+              { "taken_after": "2026-05-23T04:00:00Z", "taken_before": "2026-05-26T04:00:00Z" },
+              { "taken_after": "2026-05-22T04:00:00Z", "taken_before": "2026-05-26T04:00:00Z" }
+            ],
+            "verifyPhrase": { "phrase": "Memorial Day weekend" }
+          }
+        ],
+        "response": { "checks": [ { "kind": "count", "expected": 3, "unit": "photos?|pictures?|shots?", "note": "Sat May 23, Sun May 24, and Mon May 25 9:30pm EDT (UTC-timestamped May 26); May 20 and Tue May 26 afternoon are outside" } ] }
+      },
+      "directions": ["nl2time", "time2nl"],
+      "rationale": "Now = Wednesday Jun 3 2026, 9:30am EDT (UTC-4). Memorial Day 2026 is Monday May 25. Memorial Day weekend = Sat May 23 00:00 ET .. Tue May 26 00:00 ET = [2026-05-23T04:00Z, 2026-05-26T04:00Z) (nl2time agrees); the long-weekend-from-Friday reading [2026-05-22T04:00Z, 2026-05-26T04:00Z) is also admitted. No rows on Fri May 22, so both tuples select the same rows. In range: Sat May 23 12:20pm, Sun May 24 4:05pm, and the trap row 2026-05-26T01:30Z = Mon May 25 9:30pm EDT (UTC day May 26 — dropped by naive UTC-day bounds). Out: Wed May 20 and Tue May 26 3:10pm ET. Count = 3."
+    },
+    {
+      "id": "med-02",
+      "title": "videos-shot-in-june",
+      "context": { "now": "2026-07-14T10:00:00-04:00", "timeZone": "America/New_York", "locale": "en-US" },
+      "user": "How many videos did I shoot in June?",
+      "mocks": {
+        "search_media": {
+          "rows": [
+            { "media_id": "VID_0311", "type": "video", "title": "Recital clip", "taken_utc": "2026-06-05T22:10:00Z" },
+            { "media_id": "VID_0314", "type": "video", "title": "Park drone flight", "taken_utc": "2026-06-18T15:30:00Z" },
+            { "media_id": "VID_0319", "type": "video", "title": "Porch thunderstorm", "taken_utc": "2026-07-01T02:10:00Z" },
+            { "media_id": "VID_0309", "type": "video", "title": "Late grill session", "taken_utc": "2026-06-01T01:00:00Z" },
+            { "media_id": "IMG_5522", "type": "photo", "title": "Farmers market haul", "taken_utc": "2026-06-12T17:45:00Z" },
+            { "media_id": "VID_0322", "type": "video", "title": "Fireworks leftovers", "taken_utc": "2026-07-08T19:00:00Z" }
+          ]
+        }
+      },
+      "expect": {
+        "toolCalls": [
+          {
+            "tool": "search_media",
+            "graded": ["taken_after", "taken_before"],
+            "argKinds": { "taken_after": "instant-start", "taken_before": "instant-end" },
+            "admissible": [
+              { "taken_after": "2026-06-01T04:00:00Z", "taken_before": "2026-07-01T04:00:00Z" }
+            ],
+            "verifyPhrase": { "phrase": "in June" }
+          }
+        ],
+        "response": { "checks": [ { "kind": "count", "expected": 3, "unit": "videos?|clips?", "note": "Jun 5, Jun 18, and Jun 30 10:10pm EDT (UTC-stamped Jul 1); the 2026-06-01T01:00Z video is May 31 local, and the photo row is not a video" } ] }
+      },
+      "directions": ["nl2time", "time2nl"],
+      "rationale": "Now = Tuesday Jul 14 2026, 10:00am EDT. June as a civil month in New York (EDT throughout) = Jun 1 00:00 ET .. Jul 1 00:00 ET = [2026-06-01T04:00Z, 2026-07-01T04:00Z); nl2time agrees. Double UTC trap: VID_0319 (2026-07-01T02:10Z) is Jun 30 10:10pm EDT — inside local June, dropped by naive UTC bounds — while VID_0309 (2026-06-01T01:00Z) is May 31 9:00pm EDT — outside local June, wrongly included by naive UTC bounds. In-range rows = 4 (videos Jun 5, Jun 18, Jun 30 + photo Jun 12); video count = 3. VID_0322 is July."
+    },
+    {
+      "id": "med-03",
+      "title": "trip-week-of-july-6",
+      "context": { "now": "2026-07-21T11:45:00-04:00", "timeZone": "America/New_York", "locale": "en-US" },
+      "user": "How many pictures did I take on my Bar Harbor trip the week of July 6th?",
+      "mocks": {
+        "search_media": {
+          "rows": [
+            { "media_id": "IMG_6001", "type": "photo", "album": "Bar Harbor trip", "title": "Harbor at dusk", "taken_utc": "2026-07-06T21:15:00Z" },
+            { "media_id": "IMG_6014", "type": "photo", "album": "Bar Harbor trip", "title": "Cadillac Mountain", "taken_utc": "2026-07-08T14:30:00Z" },
+            { "media_id": "IMG_6027", "type": "photo", "album": "Bar Harbor trip", "title": "Stargazing", "taken_utc": "2026-07-12T02:40:00Z" },
+            { "media_id": "IMG_5990", "type": "photo", "album": "Around town", "title": "Packing chaos", "taken_utc": "2026-07-03T15:00:00Z" },
+            { "media_id": "IMG_6040", "type": "photo", "album": "Around town", "title": "Laundry mountain", "taken_utc": "2026-07-14T18:20:00Z" }
+          ]
+        }
+      },
+      "expect": {
+        "toolCalls": [
+          {
+            "tool": "search_media",
+            "graded": ["taken_after", "taken_before"],
+            "argKinds": { "taken_after": "instant-start", "taken_before": "instant-end" },
+            "admissible": [
+              { "taken_after": "2026-07-05T04:00:00Z", "taken_before": "2026-07-12T04:00:00Z" },
+              { "taken_after": "2026-07-06T04:00:00Z", "taken_before": "2026-07-13T04:00:00Z" }
+            ],
+            "verifyPhrase": { "phrase": "the week of July 6th" }
+          }
+        ],
+        "response": { "checks": [ { "kind": "count", "expected": 3, "unit": "pictures?|photos?|shots?", "note": "Mon Jul 6, Wed Jul 8, and Sat Jul 11 10:40pm EDT (UTC-stamped Jul 12); Jul 3 and Jul 14 rows are outside the week" } ] }
+      },
+      "directions": ["nl2time", "time2nl"],
+      "rationale": "Now = Tuesday Jul 21 2026, 11:45am EDT. Jul 6 2026 is a Monday, so 'the week of July 6th' admits the Sunday-start week Sun Jul 5..Sun Jul 12 = [2026-07-05T04:00Z, 2026-07-12T04:00Z) (nl2time's reading) and the Monday-start week Mon Jul 6..Mon Jul 13 = [2026-07-06T04:00Z, 2026-07-13T04:00Z). All in-range rows sit Mon Jul 6 .. Sat Jul 11 local — no rows on the disputed edge days (Sun Jul 5, Sun Jul 12 local) — so both tuples select the same 3 rows. Trap: IMG_6027 (2026-07-12T02:40Z) is Sat Jul 11 10:40pm EDT, inside both readings, but a naive UTC-day week [Jul 5 00Z, Jul 12 00Z) drops it. Jul 3 and Jul 14 rows are excluded. Count = 3."
+    },
+    {
+      "id": "med-04",
+      "title": "paris-photo-when-taken",
+      "context": { "now": "2026-07-10T14:20:00-04:00", "timeZone": "America/New_York", "locale": "en-US" },
+      "user": "When exactly was this photo taken? It's IMG_2214, the one outside the Louvre.",
+      "mocks": {
+        "get_media_info": {
+          "response": {
+            "media_id": "IMG_2214",
+            "type": "photo",
+            "title": "Louvre pyramid at night",
+            "taken_utc": "2026-06-20T22:47:00Z",
+            "location": "Louvre Museum, Paris, France",
+            "tz_where_taken": "Europe/Paris"
+          }
+        },
+        "search_media": {
+          "rows": [
+            { "media_id": "IMG_2214", "type": "photo", "title": "Louvre pyramid at night", "location": "Louvre Museum, Paris, France", "tz_where_taken": "Europe/Paris", "taken_utc": "2026-06-20T22:47:00Z" }
+          ]
+        }
+      },
+      "expect": {
+        "response": {
+          "checks": [
+            { "kind": "civilDay", "instant": "2026-06-20T22:47:00Z", "tz": "Europe/Paris", "rejectUtcDay": true, "note": "Taken 00:47 CEST on Sunday June 21 where the photo was shot; the UTC day (June 20) is wrong — and the user's home-zone New York reading (June 20, 6:47pm EDT) coincides with the UTC day, so rejectUtcDay also rejects the home-zone answer" },
+            { "kind": "clockTime", "instant": "2026-06-20T22:47:00Z", "tz": "Europe/Paris", "rejectUtcClock": true, "note": "If a clock time is given it must be 12:47 am / 00:47 Paris time, not 22:47 UTC" }
+          ]
+        }
+      },
+      "directions": ["time2nl"],
+      "rationale": "Pure time->NL. get_media_info takes no time args and returns taken_utc 2026-06-20T22:47Z with tz_where_taken Europe/Paris (CEST, UTC+2 in June): local capture time is Sunday June 21 2026, 00:47. A photo's 'when taken' is conventionally rendered in the zone where it was shot. Trap: both the naive UTC reading and the user's home-zone (America/New_York, 6:47pm EDT) reading give June 20 — rejectUtcDay rejects that day either way. The same row also appears in search_media mock data so a search-first agent sees consistent data."
+    },
+    {
+      "id": "med-05",
+      "title": "uploads-yesterday-denver",
+      "context": { "now": "2026-07-18T10:15:00-06:00", "timeZone": "America/Denver", "locale": "en-US" },
+      "user": "What did I upload yesterday?",
+      "mocks": {
+        "search_uploads": {
+          "rows": [
+            { "file": "lake_sunset.jpg", "uploaded_utc": "2026-07-18T04:55:00Z" },
+            { "file": "trailhead_pano.jpg", "uploaded_utc": "2026-07-17T15:30:00Z" },
+            { "file": "campfire.mp4", "uploaded_utc": "2026-07-16T23:00:00Z" },
+            { "file": "morning_ride.mp4", "uploaded_utc": "2026-07-18T16:00:00Z" }
+          ]
+        },
+        "get_latest_upload": {
+          "response": { "file": "morning_ride.mp4", "uploaded_utc": "2026-07-18T16:00:00Z", "size_mb": 214.6 }
+        }
+      },
+      "expect": {
+        "toolCalls": [
+          {
+            "tool": "search_uploads",
+            "graded": ["uploaded_after", "uploaded_before"],
+            "argKinds": { "uploaded_after": "instant-start", "uploaded_before": "instant-end" },
+            "admissible": [
+              { "uploaded_after": "2026-07-17T06:00:00Z", "uploaded_before": "2026-07-18T06:00:00Z" }
+            ],
+            "verifyPhrase": { "phrase": "yesterday" }
+          }
+        ],
+        "response": {
+          "checks": [
+            { "kind": "count", "expected": 2, "unit": "uploads?|files?|items?", "note": "trailhead_pano (Fri 9:30am MDT) and lake_sunset (Fri 10:55pm MDT, UTC-stamped Sat Jul 18)" },
+            { "kind": "regex", "accept": "lake[_ ]?sunset", "reject": "campfire|morning[_ ]?ride", "note": "Must include the Friday-night upload and not the Thursday or today decoys" }
+          ]
+        }
+      },
+      "directions": ["nl2time", "time2nl"],
+      "rationale": "Now = Saturday Jul 18 2026, 10:15am MDT (UTC-6). Yesterday = civil Friday Jul 17 in Denver: [Jul 17 00:00 MT, Jul 18 00:00 MT) = [2026-07-17T06:00Z, 2026-07-18T06:00Z); nl2time agrees. Trap: lake_sunset.jpg (2026-07-18T04:55Z) is Friday 10:55pm MDT — inside — but naive UTC-day bounds [Jul 17 00Z, Jul 18 00Z) drop it (leaving only trailhead_pano, count 1). campfire.mp4 is Thursday 5pm MDT (outside); morning_ride.mp4 is today 10:00am MDT (outside, and consistently mocked as get_latest_upload). Answer: 2 uploads — trailhead_pano and lake_sunset."
+    },
+    {
+      "id": "med-06",
+      "title": "morning-of-july-4-photos",
+      "context": { "now": "2026-07-07T19:00:00-04:00", "timeZone": "America/New_York", "locale": "en-US" },
+      "user": "How many photos did I take on the morning of July 4th?",
+      "mocks": {
+        "search_media": {
+          "rows": [
+            { "media_id": "IMG_7010", "type": "photo", "title": "Pancake breakfast", "taken_utc": "2026-07-04T11:05:00Z" },
+            { "media_id": "IMG_7013", "type": "photo", "title": "Parade staging", "taken_utc": "2026-07-04T14:40:00Z" },
+            { "media_id": "IMG_7021", "type": "photo", "title": "BBQ platter", "taken_utc": "2026-07-04T17:30:00Z" },
+            { "media_id": "IMG_7038", "type": "photo", "title": "Fireworks finale", "taken_utc": "2026-07-05T01:20:00Z" }
+          ]
+        }
+      },
+      "expect": {
+        "toolCalls": [
+          {
+            "tool": "search_media",
+            "graded": ["taken_after", "taken_before"],
+            "argKinds": { "taken_after": "instant-start", "taken_before": "instant-end" },
+            "admissible": [
+              { "taken_after": "2026-07-04T10:00:00Z", "taken_before": "2026-07-04T16:00:00Z" },
+              { "taken_after": "2026-07-04T04:00:00Z", "taken_before": "2026-07-04T16:00:00Z" }
+            ],
+            "verifyPhrase": { "phrase": "the morning of July 4th" }
+          }
+        ],
+        "response": { "checks": [ { "kind": "count", "expected": 2, "unit": "photos?|pictures?|shots?", "note": "7:05am and 10:40am ET; the 1:30pm and 9:20pm shots are not morning" } ] }
+      },
+      "directions": ["nl2time", "time2nl"],
+      "rationale": "Now = Tuesday Jul 7 2026, 7:00pm EDT. Morning of Sat Jul 4 in New York admits the conventional 6am-noon window [2026-07-04T10:00Z, 2026-07-04T16:00Z) (nl2time's reading) and the generous midnight-noon window [2026-07-04T04:00Z, 2026-07-04T16:00Z). No rows between 00:00 and 06:00 local, so both tuples select the same rows: 7:05am (11:05Z) and 10:40am (14:40Z) ET. The 1:30pm (17:30Z) and 9:20pm (2026-07-05T01:20Z) rows are afternoon/evening. A naive UTC morning window [06:00Z, 12:00Z) would return only the 11:05Z row. Count = 2."
+    },
+    {
+      "id": "med-07",
+      "title": "kolkata-last-weekend-photos",
+      "context": { "now": "2026-07-22T14:30:00+05:30", "timeZone": "Asia/Kolkata", "locale": "en-IN" },
+      "user": "How many photos did I take last weekend?",
+      "mocks": {
+        "search_media": {
+          "rows": [
+            { "media_id": "IMG_8801", "type": "photo", "title": "Night market lights", "taken_utc": "2026-07-17T19:30:00Z" },
+            { "media_id": "IMG_8805", "type": "photo", "title": "Victoria Memorial", "taken_utc": "2026-07-18T11:00:00Z" },
+            { "media_id": "IMG_8809", "type": "photo", "title": "Sunday brunch", "taken_utc": "2026-07-19T05:45:00Z" },
+            { "media_id": "IMG_8812", "type": "photo", "title": "Midnight chai run", "taken_utc": "2026-07-19T19:10:00Z" },
+            { "media_id": "IMG_8790", "type": "photo", "title": "Office rooftop", "taken_utc": "2026-07-15T09:00:00Z" }
+          ]
+        }
+      },
+      "expect": {
+        "toolCalls": [
+          {
+            "tool": "search_media",
+            "graded": ["taken_after", "taken_before"],
+            "argKinds": { "taken_after": "instant-start", "taken_before": "instant-end" },
+            "admissible": [
+              { "taken_after": "2026-07-17T18:30:00Z", "taken_before": "2026-07-19T18:30:00Z" }
+            ],
+            "verifyPhrase": { "phrase": "last weekend" }
+          }
+        ],
+        "response": { "checks": [ { "kind": "count", "expected": 3, "unit": "photos?|pictures?|shots?", "note": "Sat 1:00am, Sat 4:30pm, Sun 11:15am IST; the midnight chai photo is Monday 00:40 IST and the rooftop is midweek" } ] }
+      },
+      "directions": ["nl2time", "time2nl"],
+      "rationale": "Now = Wednesday Jul 22 2026, 2:30pm IST (Asia/Kolkata, UTC+5:30 — non-integer-hour offset). Last weekend = Sat Jul 18 00:00 IST .. Mon Jul 20 00:00 IST = [2026-07-17T18:30Z, 2026-07-19T18:30Z); nl2time agrees. Bounds land at :30 past the UTC hour. Double trap: IMG_8801 (2026-07-17T19:30Z) is Saturday 1:00am IST — inside, though its UTC day is Friday Jul 17 — while IMG_8812 (2026-07-19T19:10Z) is Monday 00:40am IST — outside, though its UTC day is Sunday Jul 19. Naive UTC-weekend bounds [Jul 18 00Z, Jul 20 00Z) select exactly the wrong pair. In range: IMG_8801, IMG_8805 (Sat 4:30pm), IMG_8809 (Sun 11:15am). Count = 3."
+    },
+    {
+      "id": "med-08",
+      "title": "photos-three-days-ago",
+      "context": { "now": "2026-08-02T18:30:00-04:00", "timeZone": "America/New_York", "locale": "en-US" },
+      "user": "How many photos did I take three days ago?",
+      "mocks": {
+        "search_media": {
+          "rows": [
+            { "media_id": "IMG_9101", "type": "photo", "title": "New desk setup", "taken_utc": "2026-07-30T15:12:00Z" },
+            { "media_id": "IMG_9102", "type": "photo", "title": "Storm clouds rolling in", "taken_utc": "2026-07-30T19:45:00Z" },
+            { "media_id": "IMG_9095", "type": "photo", "title": "Bagel run", "taken_utc": "2026-07-29T16:00:00Z" },
+            { "media_id": "IMG_9110", "type": "photo", "title": "Friday flowers", "taken_utc": "2026-07-31T14:30:00Z" }
+          ]
+        }
+      },
+      "expect": {
+        "toolCalls": [
+          {
+            "tool": "search_media",
+            "graded": ["taken_after", "taken_before"],
+            "argKinds": { "taken_after": "instant-start", "taken_before": "instant-end" },
+            "admissible": [
+              { "taken_after": "2026-07-30T04:00:00Z", "taken_before": "2026-07-31T04:00:00Z" }
+            ],
+            "verifyPhrase": { "phrase": "three days ago" }
+          }
+        ],
+        "response": { "checks": [ { "kind": "count", "expected": 2, "unit": "photos?|pictures?|shots?", "note": "Both Thursday Jul 30 midday shots; Wed Jul 29 and Fri Jul 31 rows are adjacent-day decoys" } ] }
+      },
+      "directions": ["nl2time", "time2nl"],
+      "rationale": "Trap-free baseline. Now = Sunday Aug 2 2026, 6:30pm EDT (near the month boundary). Three days ago = civil Thursday Jul 30 in New York: [Jul 30 00:00 ET, Jul 31 00:00 ET) = [2026-07-30T04:00Z, 2026-07-31T04:00Z); nl2time agrees. Both in-range rows are midday ET (11:12am and 3:45pm), far from any boundary, and their UTC and local days coincide. Adjacent-day decoys on Jul 29 and Jul 31 are also midday. Count = 2 under any reasonable bound placement."
+    },
+    {
+      "id": "med-09",
+      "title": "videos-past-48-hours",
+      "context": { "now": "2026-07-16T21:30:00-05:00", "timeZone": "America/Chicago", "locale": "en-US" },
+      "user": "How many videos have I shot in the past 48 hours?",
+      "mocks": {
+        "search_media": {
+          "rows": [
+            { "media_id": "VID_1201", "type": "video", "title": "Cat vs cucumber", "taken_utc": "2026-07-15T03:10:00Z" },
+            { "media_id": "VID_1204", "type": "video", "title": "Lunchtime jam", "taken_utc": "2026-07-16T18:00:00Z" },
+            { "media_id": "VID_1199", "type": "video", "title": "Garage cleanup timelapse", "taken_utc": "2026-07-15T01:00:00Z" },
+            { "media_id": "IMG_1202", "type": "photo", "title": "Sunset from porch", "taken_utc": "2026-07-16T00:30:00Z" }
+          ]
+        }
+      },
+      "expect": {
+        "toolCalls": [
+          {
+            "tool": "search_media",
+            "graded": ["taken_after", "taken_before"],
+            "argKinds": { "taken_after": "instant-start", "taken_before": "instant-end" },
+            "admissible": [
+              { "taken_after": "2026-07-15T02:30:00Z", "taken_before": "2026-07-17T02:30:00Z" }
+            ],
+            "verifyPhrase": { "phrase": "the past 48 hours" }
+          }
+        ],
+        "response": { "checks": [ { "kind": "count", "expected": 2, "unit": "videos?|clips?", "note": "Cat video (Tue 10:10pm CDT, 47.7h ago) and lunchtime jam (Thu 1pm); the garage timelapse at Tue 8:00pm CDT is 49.5h ago, and the porch row is a photo" } ] }
+      },
+      "directions": ["nl2time", "time2nl"],
+      "rationale": "Now = Thursday Jul 16 2026, 9:30pm CDT (America/Chicago, UTC-5) = 2026-07-17T02:30Z. The past 48 hours is a rolling window ending now: [2026-07-15T02:30Z, 2026-07-17T02:30Z) = Tue Jul 14 9:30pm CT .. now; nl2time agrees. VID_1201 (2026-07-15T03:10Z = Tue 10:10pm CDT) is inside at 47.7h ago; VID_1199 (2026-07-15T01:00Z = Tue 8:00pm CDT) is outside at 49.5h ago — a calendar-days misreading ('since Tuesday 00:00' or 'since Wednesday 00:00') gets 3 or 1 instead of 2. The in-range photo (IMG_1202) must not be counted as a video. Video count = 2 (total in-range rows 3)."
+    },
+    {
+      "id": "med-10",
+      "title": "latest-upload-which-day",
+      "context": { "now": "2026-07-26T10:05:00-04:00", "timeZone": "America/New_York", "locale": "en-US" },
+      "user": "When did my last upload go through, and what day of the week was that?",
+      "mocks": {
+        "get_latest_upload": {
+          "response": { "file": "rooftop_party.mp4", "uploaded_utc": "2026-07-25T03:20:00Z", "size_mb": 87.3 }
+        },
+        "search_uploads": {
+          "rows": [
+            { "file": "rooftop_party.mp4", "uploaded_utc": "2026-07-25T03:20:00Z" },
+            { "file": "receipts_scan.jpg", "uploaded_utc": "2026-07-20T14:00:00Z" }
+          ]
+        }
+      },
+      "expect": {
+        "response": {
+          "checks": [
+            { "kind": "civilDay", "instant": "2026-07-25T03:20:00Z", "tz": "America/New_York", "rejectUtcDay": true, "note": "Uploaded 11:20pm EDT Friday July 24; the UTC timestamp reads Saturday July 25" },
+            { "kind": "weekday", "instant": "2026-07-25T03:20:00Z", "tz": "America/New_York", "note": "Must say Friday, not Saturday" }
+          ]
+        }
+      },
+      "directions": ["time2nl"],
+      "rationale": "Pure time->NL: get_latest_upload takes no arguments and returns uploaded_utc 2026-07-25T03:20Z. In America/New_York (EDT, UTC-4) that is Friday July 24 2026, 11:20pm. The naive UTC reading — Saturday July 25 — is wrong on both the civil day and the weekday. search_uploads is mocked consistently (same latest row plus an older Monday upload) for agents that search instead. Now = Sunday Jul 26 2026, 10:05am EDT."
+    }
+  ]
+}

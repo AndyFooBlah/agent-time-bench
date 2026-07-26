@@ -1,0 +1,391 @@
+{
+  "domain": "email",
+  "description": "Personal email assistant with mailbox search, thread retrieval, and unread-summary tools.",
+  "tools": [
+    {
+      "name": "search_email",
+      "description": "Search the user's mailbox. Returns messages whose received timestamp falls in [received_after, received_before). Both bounds are required and must be UTC ISO 8601 strings (e.g. 2026-07-01T04:00:00Z); received_after is inclusive, received_before is exclusive.",
+      "params": [
+        { "name": "query", "type": "string", "description": "Free-text subject/body filter (optional; empty matches all messages in range)", "required": false },
+        { "name": "sender", "type": "string", "description": "Sender name or address filter (optional)", "required": false },
+        { "name": "received_after", "type": "string", "description": "Range start, UTC ISO 8601, inclusive", "required": true },
+        { "name": "received_before", "type": "string", "description": "Range end, UTC ISO 8601, exclusive", "required": true }
+      ],
+      "mock": {
+        "kind": "filter-rows",
+        "rowsKey": "messages",
+        "timestampField": "received_utc",
+        "startParam": "received_after",
+        "endParam": "received_before"
+      }
+    },
+    {
+      "name": "get_latest_thread",
+      "description": "Return the most recent email thread matching the query, with every message in the thread (sender and received timestamp). No time filtering.",
+      "params": [
+        { "name": "query", "type": "string", "description": "Free-text filter over thread subject and participants", "required": true }
+      ],
+      "mock": { "kind": "static" }
+    },
+    {
+      "name": "get_unread_summary",
+      "description": "Return the user's currently unread messages (sender, subject, received timestamp), newest first. No parameters, no time filtering.",
+      "params": [],
+      "mock": { "kind": "static" }
+    }
+  ],
+  "scenarios": [
+    {
+      "id": "eml-01",
+      "title": "dana-earlier-this-week",
+      "context": { "now": "2026-07-16T09:30:00-04:00", "timeZone": "America/New_York", "locale": "en-US" },
+      "user": "How many emails did Dana send me earlier this week?",
+      "mocks": {
+        "search_email": {
+          "rows": [
+            { "name": "Dana Whitfield", "from": "dana.whitfield@corvid.io", "subject": "Q3 roadmap draft", "received_utc": "2026-07-14T14:05:00Z" },
+            { "name": "Dana Whitfield", "from": "dana.whitfield@corvid.io", "subject": "Re: Q3 roadmap draft", "received_utc": "2026-07-15T19:40:00Z" },
+            { "name": "Dana Whitfield", "from": "dana.whitfield@corvid.io", "subject": "Offsite logistics", "received_utc": "2026-07-09T15:00:00Z" },
+            { "name": "Corvid Marketing", "from": "news@corvid.io", "subject": "July newsletter", "received_utc": "2026-07-15T16:10:00Z" }
+          ]
+        }
+      },
+      "expect": {
+        "toolCalls": [
+          {
+            "tool": "search_email",
+            "graded": ["received_after", "received_before"],
+            "argKinds": { "received_after": "instant-start", "received_before": "instant-end" },
+            "admissible": [
+              { "received_after": "2026-07-12T04:00:00Z", "received_before": "2026-07-16T04:00:00Z" },
+              { "received_after": "2026-07-12T04:00:00Z", "received_before": "2026-07-16T13:30:00Z" },
+              { "received_after": "2026-07-12T04:00:00Z", "received_before": "2026-07-17T04:00:00Z" },
+              { "received_after": "2026-07-12T04:00:00Z", "received_before": "2026-07-19T04:00:00Z" },
+              { "received_after": "2026-07-13T04:00:00Z", "received_before": "2026-07-16T04:00:00Z" },
+              { "received_after": "2026-07-13T04:00:00Z", "received_before": "2026-07-16T13:30:00Z" },
+              { "received_after": "2026-07-13T04:00:00Z", "received_before": "2026-07-17T04:00:00Z" },
+              { "received_after": "2026-07-13T04:00:00Z", "received_before": "2026-07-20T04:00:00Z" }
+            ],
+            "verifyPhrase": {
+              "phrase": "earlier this week",
+              "disagreementNote": "nl2time ends 'earlier this week' at 2026-07-15T04:00Z — the start of YESTERDAY (Wed Jul 15 00:00 ET) — excluding all of Wednesday even though now is Thursday. The benchmark admits week-start (Sun or Mon convention) through start-of-today / now / end-of-today / end-of-week; excluding Wednesday from 'earlier this week' on a Thursday is an nl2time quirk to report"
+            }
+          }
+        ],
+        "response": { "checks": [ { "kind": "count", "expected": 2, "unit": "emails?|messages?", "note": "Dana's Tue Jul 14 and Wed Jul 15 messages; her Jul 9 email is last week and the Wed newsletter is a different sender" } ] }
+      },
+      "directions": ["nl2time", "time2nl"],
+      "rationale": "Now = THURSDAY Jul 16 2026, 9:30am EDT (UTC-4) — midweek so Sunday-start and Monday-start weeks agree on the interior. Week starts: Sun Jul 12 00:00 ET = 2026-07-12T04:00Z (en-US CLDR) or Mon Jul 13 00:00 ET = 2026-07-13T04:00Z (ISO). 'Earlier this week' admits defensible ends: start of today (Jul 16 00:00 ET = 16T04:00Z, reading that excludes today), now itself (2026-07-16T13:30Z), end of today (Jul 17 00:00 ET = 17T04:00Z), or end of the week matching the start convention (Sun-start ends Sun Jul 19 00:00 ET = 19T04:00Z; Mon-start ends Mon Jul 20 00:00 ET = 20T04:00Z). Dana rows Tue Jul 14 10:05am and Wed Jul 15 3:40pm EDT fall inside EVERY tuple (all ends >= 16T04:00Z > the latest row 15T19:40Z); Dana Jul 9 (Thu last week) is outside every tuple; the marketing newsletter (Wed Jul 15) is in range but the wrong sender. No rows on the disputed edge day Sun Jul 12 or between the earliest end (16T04:00Z) and the latest (20T04:00Z), so every tuple selects the same 3 rows and Dana's count is 2 under all readings."
+    },
+    {
+      "id": "eml-02",
+      "title": "anything-over-the-weekend",
+      "context": { "now": "2026-07-20T18:40:00-04:00", "timeZone": "America/New_York", "locale": "en-US" },
+      "user": "Did anything come in over the weekend? Tell me the day each one arrived.",
+      "mocks": {
+        "search_email": {
+          "rows": [
+            { "name": "Luis Ortega", "from": "luis.ortega@gmail.com", "subject": "Pickup game photos", "received_utc": "2026-07-18T21:15:00Z" },
+            { "name": "Aunt Carol", "from": "carol.brook@aol.com", "subject": "Reunion planning", "received_utc": "2026-07-20T03:10:00Z" },
+            { "name": "FreshDirect", "from": "orders@freshdirect.com", "subject": "Your Friday delivery", "received_utc": "2026-07-17T20:30:00Z" },
+            { "name": "Greg Chen", "from": "greg.chen@corvid.io", "subject": "Monday standup notes", "received_utc": "2026-07-20T13:05:00Z" }
+          ]
+        }
+      },
+      "expect": {
+        "toolCalls": [
+          {
+            "tool": "search_email",
+            "graded": ["received_after", "received_before"],
+            "argKinds": { "received_after": "instant-start", "received_before": "instant-end" },
+            "admissible": [
+              { "received_after": "2026-07-18T04:00:00Z", "received_before": "2026-07-20T04:00:00Z" }
+            ],
+            "verifyPhrase": { "phrase": "over the weekend" }
+          }
+        ],
+        "response": {
+          "checks": [
+            { "kind": "count", "expected": 2, "unit": "emails?|messages?", "note": "Saturday photos + Sunday-night reunion email; Friday delivery and Monday standup are outside the weekend" },
+            { "kind": "civilDay", "instant": "2026-07-18T21:15:00Z", "tz": "America/New_York", "note": "Photos arrived Saturday July 18 (5:15pm EDT; UTC day agrees)" },
+            { "kind": "civilDay", "instant": "2026-07-20T03:10:00Z", "tz": "America/New_York", "rejectUtcDay": true, "note": "Reunion email arrived Sunday July 19, 11:10pm EDT — the UTC timestamp reads Monday July 20 and must not be given as the day" }
+          ]
+        }
+      },
+      "directions": ["nl2time", "time2nl"],
+      "rationale": "Now = MONDAY Jul 20 2026, 6:40pm EDT (UTC-4), so 'over the weekend' is unambiguously the just-ended Sat–Sun: Sat Jul 18 00:00 ET .. Mon Jul 20 00:00 ET = [2026-07-18T04:00Z, 2026-07-20T04:00Z) — nl2time agrees. Trap: the Aunt Carol row 2026-07-20T03:10Z is Sunday Jul 19 11:10pm EDT — inside the local weekend but excluded by naive UTC-day bounds [18T00Z, 20T00Z), and its UTC day (Monday Jul 20) is the wrong answer day. The Luis row 2026-07-18T21:15Z = Saturday 5:15pm EDT (UTC and local day agree — plain civilDay). FreshDirect (Fri 4:30pm EDT) and Greg (Mon 9:05am EDT) are outside. Count = 2."
+    },
+    {
+      "id": "eml-03",
+      "title": "landlord-count-in-june",
+      "context": { "now": "2026-07-14T08:20:00-04:00", "timeZone": "America/New_York", "locale": "en-US" },
+      "user": "How many emails did my landlord send me in June?",
+      "mocks": {
+        "search_email": {
+          "rows": [
+            { "name": "Marcus Webb (Hillcrest Properties)", "from": "mwebb@hillcrestprop.com", "subject": "Rent receipt - May", "received_utc": "2026-06-01T03:00:00Z" },
+            { "name": "Marcus Webb (Hillcrest Properties)", "from": "mwebb@hillcrestprop.com", "subject": "Elevator maintenance notice", "received_utc": "2026-06-10T15:30:00Z" },
+            { "name": "Marcus Webb (Hillcrest Properties)", "from": "mwebb@hillcrestprop.com", "subject": "Lease renewal paperwork", "received_utc": "2026-06-24T13:45:00Z" },
+            { "name": "Marcus Webb (Hillcrest Properties)", "from": "mwebb@hillcrestprop.com", "subject": "Rent reminder", "received_utc": "2026-07-01T02:15:00Z" },
+            { "name": "First Federal Bank", "from": "alerts@firstfederal.com", "subject": "Your June statement is ready", "received_utc": "2026-06-18T12:00:00Z" }
+          ]
+        }
+      },
+      "expect": {
+        "toolCalls": [
+          {
+            "tool": "search_email",
+            "graded": ["received_after", "received_before"],
+            "argKinds": { "received_after": "instant-start", "received_before": "instant-end" },
+            "admissible": [
+              { "received_after": "2026-06-01T04:00:00Z", "received_before": "2026-07-01T04:00:00Z" }
+            ],
+            "verifyPhrase": { "phrase": "in June" }
+          }
+        ],
+        "response": { "checks": [ { "kind": "count", "expected": 3, "unit": "emails?|messages?|notices?", "note": "Jun 10, Jun 24, and the Jun 30 10:15pm rent reminder; the May-31-11pm receipt is not June" } ] }
+      },
+      "directions": ["nl2time", "time2nl"],
+      "rationale": "Now = Tuesday Jul 14 2026, 8:20am EDT. June as a civil month in New York (EDT, UTC-4 throughout): Jun 1 00:00 ET .. Jul 1 00:00 ET = [2026-06-01T04:00Z, 2026-07-01T04:00Z) — nl2time agrees. Symmetric UTC trap at both boundaries: the 'Rent receipt' row 2026-06-01T03:00Z is Sunday MAY 31 11:00pm EDT — outside local June but inside a naive UTC June window — while the 'Rent reminder' row 2026-07-01T02:15Z is Tuesday JUNE 30 10:15pm EDT — inside local June but outside naive UTC June. Correct landlord count = 3 (Jun 10, Jun 24, Jun 30); naive UTC bounds also give 3 but the wrong set — the count stays a valid discriminator only jointly with the graded bounds. The bank row (Jun 18) is in range but the wrong sender."
+    },
+    {
+      "id": "eml-04",
+      "title": "past-48-hours",
+      "context": { "now": "2026-08-01T10:05:00-04:00", "timeZone": "America/New_York", "locale": "en-US" },
+      "user": "How many messages have come in over the past 48 hours?",
+      "mocks": {
+        "search_email": {
+          "rows": [
+            { "name": "Nadia Osei", "from": "nadia@oseidesign.com", "subject": "Contract signed!", "received_utc": "2026-07-30T15:30:00Z" },
+            { "name": "GitHub", "from": "notifications@github.com", "subject": "[tileships] PR #42 merged", "received_utc": "2026-07-31T22:10:00Z" },
+            { "name": "Sam Alvarez", "from": "sam.alvarez@gmail.com", "subject": "Saturday ride?", "received_utc": "2026-08-01T13:00:00Z" },
+            { "name": "Nadia Osei", "from": "nadia@oseidesign.com", "subject": "Draft contract for review", "received_utc": "2026-07-30T13:00:00Z" }
+          ]
+        }
+      },
+      "expect": {
+        "toolCalls": [
+          {
+            "tool": "search_email",
+            "graded": ["received_after", "received_before"],
+            "argKinds": { "received_after": "instant-start", "received_before": "instant-end" },
+            "admissible": [
+              { "received_after": "2026-07-30T14:05:00Z", "received_before": "2026-08-01T14:05:00Z" }
+            ],
+            "verifyPhrase": { "phrase": "the past 48 hours" }
+          }
+        ],
+        "response": { "checks": [ { "kind": "count", "expected": 3, "unit": "emails?|messages?", "note": "Jul 30 11:30am, Jul 31 6:10pm, Aug 1 9:00am ET; the 10:05-Thursday draft-contract email is 49h05m old" } ] }
+      },
+      "directions": ["nl2time", "time2nl"],
+      "rationale": "Now = SATURDAY Aug 1 2026, 10:05am EDT (UTC-4) = 2026-08-01T14:05Z — deliberately just past a month boundary. 'The past 48 hours' is hour-grain arithmetic from now, not a civil-day window: [now - 48h, now] = [2026-07-30T14:05Z, 2026-08-01T14:05Z) — nl2time agrees exactly. In range: Contract signed (30T15:30Z, 47h25m ago), GitHub (31T22:10Z), Sam (01T13:00Z) = 3. The Draft-contract row 30T13:00Z is 49h05m old — 65 minutes before the start — and punishes rounding to whole civil days ([Jul 30 00:00 ET, now] would count 4). No UTC/local day trickery; the trap is purely the hour-grain start bound."
+    },
+    {
+      "id": "eml-05",
+      "title": "priya-reply-when",
+      "context": { "now": "2026-07-22T14:10:00-04:00", "timeZone": "America/New_York", "locale": "en-US" },
+      "user": "When exactly did Priya reply to my note about the lease renewal?",
+      "mocks": {
+        "get_latest_thread": {
+          "response": {
+            "subject": "Lease renewal",
+            "messages": [
+              { "name": "Andy Brook", "from": "andybrook@gmail.com", "direction": "sent", "body_preview": "Priya - can you look over the renewal terms?", "received_utc": "2026-07-17T20:05:00Z" },
+              { "name": "Priya Nair", "from": "priya.nair@corvid.io", "direction": "received", "body_preview": "Looked it over - two comments inline.", "received_utc": "2026-07-18T03:22:00Z" }
+            ]
+          }
+        },
+        "search_email": {
+          "rows": [
+            { "name": "Priya Nair", "from": "priya.nair@corvid.io", "subject": "Re: Lease renewal", "received_utc": "2026-07-18T03:22:00Z" },
+            { "name": "Marcus Webb (Hillcrest Properties)", "from": "mwebb@hillcrestprop.com", "subject": "Lease renewal paperwork", "received_utc": "2026-07-16T14:30:00Z" }
+          ]
+        }
+      },
+      "expect": {
+        "response": {
+          "checks": [
+            { "kind": "civilDay", "instant": "2026-07-18T03:22:00Z", "tz": "America/New_York", "rejectUtcDay": true, "note": "Reply landed Friday July 17, 11:22pm EDT; the UTC timestamp reads July 18 and must not be given as the day" },
+            { "kind": "clockTime", "instant": "2026-07-18T03:22:00Z", "tz": "America/New_York", "rejectUtcClock": true, "note": "If a clock time is given it must be 11:22 pm local, not 3:22" }
+          ]
+        }
+      },
+      "directions": ["time2nl"],
+      "rationale": "Pure time->NL: get_latest_thread takes no time params and returns Priya's reply timestamped 2026-07-18T03:22Z. In America/New_York (EDT, UTC-4) that is FRIDAY JULY 17, 11:22pm. Correct answers say July 17 (and 11:22 pm if a time is given); 'July 18' and '3:22' are the naive UTC readings and fail. search_email is also mocked consistently (the reply row plus the landlord's original paperwork email two days earlier) so a model that searches instead of pulling the thread sees the same timestamp."
+    },
+    {
+      "id": "eml-06",
+      "title": "kolkata-three-days-ago",
+      "context": { "now": "2026-08-07T11:45:00+05:30", "timeZone": "Asia/Kolkata", "locale": "en-IN" },
+      "user": "How many emails came in 3 days ago? And when did the first one arrive?",
+      "mocks": {
+        "search_email": {
+          "rows": [
+            { "name": "Vikram Rao", "from": "vikram.rao@zenlabs.in", "subject": "Overnight build failure", "received_utc": "2026-08-03T20:00:00Z" },
+            { "name": "Meera Iyer", "from": "meera.iyer@zenlabs.in", "subject": "Design review notes", "received_utc": "2026-08-04T09:15:00Z" },
+            { "name": "Vikram Rao", "from": "vikram.rao@zenlabs.in", "subject": "Build fixed", "received_utc": "2026-08-04T19:10:00Z" },
+            { "name": "Zomato", "from": "orders@zomato.com", "subject": "Your Sunday order receipt", "received_utc": "2026-08-02T10:00:00Z" }
+          ]
+        }
+      },
+      "expect": {
+        "toolCalls": [
+          {
+            "tool": "search_email",
+            "graded": ["received_after", "received_before"],
+            "argKinds": { "received_after": "instant-start", "received_before": "instant-end" },
+            "admissible": [
+              { "received_after": "2026-08-03T18:30:00Z", "received_before": "2026-08-04T18:30:00Z" }
+            ],
+            "verifyPhrase": { "phrase": "3 days ago" }
+          }
+        ],
+        "response": {
+          "checks": [
+            { "kind": "count", "expected": 2, "unit": "emails?|messages?", "note": "Build-failure (1:30am IST) and design-review (2:45pm IST) on Tue Aug 4; 'Build fixed' is 00:40 IST Aug 5" },
+            { "kind": "clockTime", "instant": "2026-08-03T20:00:00Z", "tz": "Asia/Kolkata", "rejectUtcClock": true, "note": "First arrival is 1:30 am IST, not the UTC clock reading 8:00 pm" }
+          ]
+        }
+      },
+      "directions": ["nl2time", "time2nl"],
+      "rationale": "Now = FRIDAY Aug 7 2026, 11:45am IST (Asia/Kolkata, non-integer offset +05:30). '3 days ago' = the civil day Tuesday Aug 4 in Kolkata: [Aug 4 00:00 IST, Aug 5 00:00 IST) = [2026-08-03T18:30Z, 2026-08-04T18:30Z) — bounds land at :30 past the UTC hour; nl2time agrees exactly. Traps: the build-failure row 2026-08-03T20:00Z is Tue Aug 4 1:30am IST — inside, though its UTC day is Aug 3 — while 'Build fixed' 2026-08-04T19:10Z is Wed Aug 5 12:40am IST — outside, though its UTC day is Aug 4. Naive UTC-day bounds [04T00Z, 05T00Z) select exactly the wrong pair. Count = 2; the first arrival renders as 1:30 am IST (UTC clock 8:00 pm rejected). The Zomato row (Sun Aug 2) is well outside."
+    },
+    {
+      "id": "eml-07",
+      "title": "legal-week-of-the-6th",
+      "context": { "now": "2026-07-22T09:00:00-04:00", "timeZone": "America/New_York", "locale": "en-US" },
+      "user": "How many emails did Legal send me the week of the 6th?",
+      "mocks": {
+        "search_email": {
+          "rows": [
+            { "name": "Corvid Legal", "from": "legal@corvid.io", "subject": "NDA countersigned", "received_utc": "2026-07-07T18:20:00Z" },
+            { "name": "Corvid Legal", "from": "legal@corvid.io", "subject": "Vendor contract redlines", "received_utc": "2026-07-09T14:05:00Z" },
+            { "name": "Corvid Legal", "from": "legal@corvid.io", "subject": "Updated MSA", "received_utc": "2026-07-15T17:30:00Z" },
+            { "name": "Corvid Facilities", "from": "facilities@corvid.io", "subject": "Badge audit", "received_utc": "2026-07-08T13:10:00Z" }
+          ]
+        }
+      },
+      "expect": {
+        "toolCalls": [
+          {
+            "tool": "search_email",
+            "graded": ["received_after", "received_before"],
+            "argKinds": { "received_after": "instant-start", "received_before": "instant-end" },
+            "admissible": [
+              { "received_after": "2026-07-05T04:00:00Z", "received_before": "2026-07-12T04:00:00Z" },
+              { "received_after": "2026-07-06T04:00:00Z", "received_before": "2026-07-13T04:00:00Z" }
+            ],
+            "verifyPhrase": { "phrase": "the week of the 6th" }
+          }
+        ],
+        "response": { "checks": [ { "kind": "count", "expected": 2, "unit": "emails?|messages?", "note": "NDA (Tue Jul 7) + redlines (Thu Jul 9); the MSA email is the following week and the badge audit is not from Legal" } ] }
+      },
+      "directions": ["nl2time", "time2nl"],
+      "rationale": "Now = Wednesday Jul 22 2026, 9:00am EDT. July 6 2026 is a MONDAY; 'the week of the 6th' is the week containing it: Sunday-start (en-US CLDR) Sun Jul 5 .. Sun Jul 12 = [2026-07-05T04:00Z, 2026-07-12T04:00Z), or Monday-start (ISO) Mon Jul 6 .. Mon Jul 13 = [2026-07-06T04:00Z, 2026-07-13T04:00Z). nl2time returns the Sunday-start tuple. Disputed edge days are Sun Jul 5 (only in the Sun-start reading) and Sun Jul 12 (only in the Mon-start reading) — no rows on either, so both tuples select the same 3 rows (Legal Jul 7, Legal Jul 9, Facilities Jul 8). Legal count = 2; the Jul 15 MSA email is outside both readings and the Facilities row is the wrong sender."
+    },
+    {
+      "id": "eml-08",
+      "title": "newest-unread-arrival",
+      "context": { "now": "2026-07-25T10:00:00-04:00", "timeZone": "America/New_York", "locale": "en-US" },
+      "user": "I've been off the grid for a couple of days. When did the most recent unread email in my inbox arrive?",
+      "mocks": {
+        "get_unread_summary": {
+          "response": {
+            "unread": [
+              { "name": "IT Helpdesk", "from": "helpdesk@corvid.io", "subject": "Password expires in 7 days", "received_utc": "2026-07-23T15:12:00Z" },
+              { "name": "Ben Tanaka", "from": "ben.tanaka@gmail.com", "subject": "Camping gear list", "received_utc": "2026-07-21T12:30:00Z" },
+              { "name": "City Utilities", "from": "billing@cityutilities.gov", "subject": "Your bill is ready", "received_utc": "2026-07-20T13:45:00Z" }
+            ]
+          }
+        },
+        "search_email": {
+          "rows": [
+            { "name": "Greg Chen", "from": "greg.chen@corvid.io", "subject": "Re: standup notes", "unread": false, "received_utc": "2026-07-24T16:00:00Z" },
+            { "name": "IT Helpdesk", "from": "helpdesk@corvid.io", "subject": "Password expires in 7 days", "unread": true, "received_utc": "2026-07-23T15:12:00Z" },
+            { "name": "Ben Tanaka", "from": "ben.tanaka@gmail.com", "subject": "Camping gear list", "unread": true, "received_utc": "2026-07-21T12:30:00Z" },
+            { "name": "City Utilities", "from": "billing@cityutilities.gov", "subject": "Your bill is ready", "unread": true, "received_utc": "2026-07-20T13:45:00Z" }
+          ]
+        }
+      },
+      "expect": {
+        "response": {
+          "checks": [
+            { "kind": "civilDay", "instant": "2026-07-23T15:12:00Z", "tz": "America/New_York", "note": "Newest unread (IT Helpdesk) arrived July 23; UTC and local day agree — trap-free baseline" },
+            { "kind": "weekday", "instant": "2026-07-23T15:12:00Z", "tz": "America/New_York", "note": "July 23 2026 is a Thursday in New York" }
+          ]
+        }
+      },
+      "directions": ["time2nl"],
+      "rationale": "Pure time->NL, deliberately trap-free (honest baseline). Now = Saturday Jul 25 2026, 10:00am EDT. get_unread_summary returns the newest unread message at 2026-07-23T15:12Z = THURSDAY Jul 23, 11:12am EDT — mid-morning local, so UTC and local calendar day agree (no reject flags). search_email is mocked consistently, including a NEWER but already-read message (Greg Chen, Fri Jul 24 12:00pm EDT) as a content distractor: the newest UNREAD is still the Jul 23 helpdesk email. Older unread rows (Tue Jul 21, Mon Jul 20) are decoys for 'most recent'."
+    },
+    {
+      "id": "eml-09",
+      "title": "recruiter-q2-count",
+      "context": { "now": "2026-07-06T09:15:00-04:00", "timeZone": "America/New_York", "locale": "en-US" },
+      "user": "How many emails did the Nimbus recruiter send me in Q2?",
+      "mocks": {
+        "search_email": {
+          "rows": [
+            { "name": "Jordan Lee (Nimbus Talent)", "from": "jordan.lee@nimbus.dev", "subject": "Intro - staff role at Nimbus", "received_utc": "2026-04-01T02:00:00Z" },
+            { "name": "Jordan Lee (Nimbus Talent)", "from": "jordan.lee@nimbus.dev", "subject": "Phone screen scheduling", "received_utc": "2026-04-20T14:30:00Z" },
+            { "name": "Jordan Lee (Nimbus Talent)", "from": "jordan.lee@nimbus.dev", "subject": "Onsite logistics", "received_utc": "2026-05-28T17:10:00Z" },
+            { "name": "Jordan Lee (Nimbus Talent)", "from": "jordan.lee@nimbus.dev", "subject": "Offer details", "received_utc": "2026-07-01T01:45:00Z" },
+            { "name": "LinkedIn", "from": "jobs-noreply@linkedin.com", "subject": "New jobs for you", "received_utc": "2026-05-05T12:00:00Z" }
+          ]
+        }
+      },
+      "expect": {
+        "toolCalls": [
+          {
+            "tool": "search_email",
+            "graded": ["received_after", "received_before"],
+            "argKinds": { "received_after": "instant-start", "received_before": "instant-end" },
+            "admissible": [
+              { "received_after": "2026-04-01T04:00:00Z", "received_before": "2026-07-01T04:00:00Z" }
+            ],
+            "verifyPhrase": { "phrase": "Q2" }
+          }
+        ],
+        "response": { "checks": [ { "kind": "count", "expected": 3, "unit": "emails?|messages?", "note": "Apr 20, May 28, and the Jun 30 9:45pm offer email; the intro landed Mar 31 10pm ET (Q1)" } ] }
+      },
+      "directions": ["nl2time", "time2nl"],
+      "rationale": "Now = Monday Jul 6 2026, 9:15am EDT — Q2 just ended. Calendar Q2 2026 in New York (EDT, UTC-4 from Mar 8 onward, so both bounds are -4): Apr 1 00:00 ET .. Jul 1 00:00 ET = [2026-04-01T04:00Z, 2026-07-01T04:00Z) — nl2time agrees. Symmetric UTC trap at both quarter boundaries: the intro row 2026-04-01T02:00Z is Tuesday MAR 31 10:00pm EDT (Q1 — outside local Q2, inside naive UTC Q2) and the offer row 2026-07-01T01:45Z is Tuesday JUN 30 9:45pm EDT (inside local Q2, outside naive UTC Q2). Recruiter count = 3 (Apr 20, May 28, Jun 30); naive UTC bounds also count 3 but the wrong set, so the graded bounds carry the discrimination. LinkedIn (May 5) is in range but not the recruiter."
+    },
+    {
+      "id": "eml-10",
+      "title": "omar-last-friday",
+      "context": { "now": "2026-07-15T13:05:00-04:00", "timeZone": "America/New_York", "locale": "en-US" },
+      "user": "Did Omar send me anything last Friday?",
+      "mocks": {
+        "search_email": {
+          "rows": [
+            { "name": "Omar Haddad", "from": "omar.haddad@podworks.fm", "subject": "New podcast episode draft", "received_utc": "2026-07-10T17:30:00Z" },
+            { "name": "Omar Haddad", "from": "omar.haddad@podworks.fm", "subject": "Re: podcast notes", "received_utc": "2026-07-13T15:00:00Z" },
+            { "name": "Strava", "from": "no-reply@strava.com", "subject": "Your weekly progress", "received_utc": "2026-07-10T19:00:00Z" }
+          ]
+        }
+      },
+      "expect": {
+        "toolCalls": [
+          {
+            "tool": "search_email",
+            "graded": ["received_after", "received_before"],
+            "argKinds": { "received_after": "instant-start", "received_before": "instant-end" },
+            "admissible": [
+              { "received_after": "2026-07-10T04:00:00Z", "received_before": "2026-07-11T04:00:00Z" }
+            ],
+            "verifyPhrase": { "phrase": "last Friday" }
+          }
+        ],
+        "response": {
+          "checks": [
+            { "kind": "count", "expected": 1, "unit": "emails?|messages?", "note": "Only the podcast-draft email is from Omar on Friday Jul 10" },
+            { "kind": "regex", "accept": "\\byes\\b|podcast", "reject": "^no\\b", "note": "Should confirm the Friday podcast email; the Monday reply and the Strava digest don't count" }
+          ]
+        }
+      },
+      "directions": ["nl2time", "time2nl"],
+      "rationale": "Now = WEDNESDAY Jul 15 2026, 1:05pm EDT. 'Last Friday' from a Wednesday is the most recent past Friday, Jul 10 — and Friday-of-last-week is also Jul 10 under both week conventions, so the phrase is unambiguous: [Jul 10 00:00 ET, Jul 11 00:00 ET) = [2026-07-10T04:00Z, 2026-07-11T04:00Z) — nl2time agrees. Deliberately trap-free (honest baseline): all rows sit mid-day ET so UTC and local days coincide everywhere. In range: Omar's podcast draft (Fri 1:30pm EDT) and the Strava digest (Fri 3:00pm EDT, wrong sender); Omar's Monday Jul 13 reply is outside. Answer: yes — one email."
+    }
+  ]
+}

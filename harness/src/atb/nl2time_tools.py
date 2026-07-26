@@ -42,7 +42,9 @@ class ResolveTimephraseTool(BaseTool):
                 "own words, e.g. 'last week', 'yesterday', 'between July 4th and July 10th', "
                 "'since June 15th'. Returns {start, end, grain} as UTC ISO 8601 with end "
                 "exclusive, plus ordered alternatives if the phrase is ambiguous. Use this "
-                "whenever you need datetime arguments for another tool."
+                "whenever you need datetime arguments for another tool. Set direction to "
+                "'future' when the user asks about upcoming things (deadlines, schedules), "
+                "'past' when they ask about history; omit it for the nearest reading."
             ),
         )
         self._context = context
@@ -57,14 +59,22 @@ class ResolveTimephraseTool(BaseTool):
                     "phrase": types.Schema(
                         type=types.Type.STRING,
                         description="The natural-language time expression, verbatim from the user",
-                    )
+                    ),
+                    "direction": types.Schema(
+                        type=types.Type.STRING,
+                        enum=["past", "future"],
+                        description="Tense hint: 'past' for history questions, 'future' for upcoming; omit for nearest",
+                    ),
                 },
                 required=["phrase"],
             ),
         )
 
     async def run_async(self, *, args: dict[str, Any], tool_context: ToolContext) -> Any:
-        return call_bridge({"op": "resolve", "phrase": args.get("phrase", ""), "context": self._context})
+        context = dict(self._context)
+        direction = args.get("direction")
+        context["bias"] = direction if direction in ("past", "future") else "none"
+        return call_bridge({"op": "resolve", "phrase": args.get("phrase", ""), "context": context})
 
 
 class DescribeTimeTool(BaseTool):
