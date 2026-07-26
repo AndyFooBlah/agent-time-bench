@@ -106,6 +106,17 @@ def main() -> None:
             sid = f"{domain.name}/{scenario.id}"
             expect = scenario.expect
 
+            # context.now's stated offset must match the timezone's real offset at that instant
+            ctx = scenario.context
+            now_utc = parse_instant(ctx["now"])
+            from datetime import datetime as _dt
+            stated = _dt.fromisoformat(ctx["now"].replace("Z", "+00:00")).utcoffset()
+            actual = now_utc.astimezone(ZoneInfo(ctx["timeZone"])).utcoffset()
+            if stated != actual:
+                problems.append(
+                    f"{sid}: context.now offset {stated} does not match {ctx['timeZone']} at that instant ({actual})"
+                )
+
             for tc in expect.get("toolCalls", []):
                 spec = tool_specs[tc["tool"]]
                 if spec["mock"]["kind"] != "filter-rows":
