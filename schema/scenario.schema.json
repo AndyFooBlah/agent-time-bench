@@ -1,0 +1,209 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/AndyFooBlah/agent-time-bench/schema/scenario.schema.json",
+  "title": "agent-time-bench domain file",
+  "type": "object",
+  "required": ["domain", "description", "tools", "scenarios"],
+  "additionalProperties": false,
+  "properties": {
+    "domain": { "type": "string", "pattern": "^[a-z0-9-]+$" },
+    "description": { "type": "string" },
+    "tools": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/toolSpec" } },
+    "scenarios": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/scenario" } }
+  },
+  "$defs": {
+    "toolSpec": {
+      "type": "object",
+      "required": ["name", "description", "params", "mock"],
+      "additionalProperties": false,
+      "properties": {
+        "name": { "type": "string", "pattern": "^[a-z][a-z0-9_]*$" },
+        "description": { "type": "string" },
+        "params": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["name", "type", "description"],
+            "additionalProperties": false,
+            "properties": {
+              "name": { "type": "string" },
+              "type": { "enum": ["string", "integer", "number", "boolean"] },
+              "description": { "type": "string" },
+              "required": { "type": "boolean", "default": false }
+            }
+          }
+        },
+        "mock": {
+          "oneOf": [
+            {
+              "type": "object",
+              "required": ["kind"],
+              "additionalProperties": false,
+              "properties": { "kind": { "const": "static" } }
+            },
+            {
+              "type": "object",
+              "required": ["kind", "rowsKey", "timestampField", "startParam", "endParam"],
+              "additionalProperties": false,
+              "properties": {
+                "kind": { "const": "filter-rows" },
+                "rowsKey": { "type": "string" },
+                "timestampField": { "type": "string" },
+                "startParam": { "type": "string" },
+                "endParam": { "type": "string" }
+              }
+            }
+          ]
+        }
+      }
+    },
+    "instant": {
+      "type": "string",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.\\d+)?(Z|[+-]\\d{2}:\\d{2})$"
+    },
+    "scenario": {
+      "type": "object",
+      "required": ["id", "title", "context", "user", "expect", "directions", "rationale"],
+      "additionalProperties": false,
+      "properties": {
+        "id": { "type": "string", "pattern": "^[a-z]+-\\d{2}$" },
+        "title": { "type": "string", "pattern": "^[a-z0-9-]+$" },
+        "context": {
+          "type": "object",
+          "required": ["now", "timeZone", "locale"],
+          "additionalProperties": false,
+          "properties": {
+            "now": { "$ref": "#/$defs/instant" },
+            "timeZone": { "type": "string" },
+            "locale": { "type": "string" }
+          }
+        },
+        "user": { "type": "string" },
+        "mocks": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "rows": { "type": "array", "items": { "type": "object" } },
+              "response": {}
+            }
+          }
+        },
+        "expect": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "toolCalls": { "type": "array", "items": { "$ref": "#/$defs/toolCallExpectation" } },
+            "response": {
+              "type": "object",
+              "required": ["checks"],
+              "additionalProperties": false,
+              "properties": {
+                "checks": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/responseCheck" } }
+              }
+            }
+          }
+        },
+        "directions": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": { "enum": ["nl2time", "time2nl"] }
+        },
+        "rationale": { "type": "string", "minLength": 20 }
+      }
+    },
+    "toolCallExpectation": {
+      "type": "object",
+      "required": ["tool", "graded", "argKinds", "admissible"],
+      "additionalProperties": false,
+      "properties": {
+        "tool": { "type": "string" },
+        "graded": { "type": "array", "minItems": 1, "items": { "type": "string" } },
+        "argKinds": {
+          "type": "object",
+          "additionalProperties": { "enum": ["instant", "instant-start", "instant-end", "date", "string"] }
+        },
+        "admissible": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "type": "object", "additionalProperties": { "type": "string" } }
+        },
+        "verifyPhrase": {
+          "type": "object",
+          "required": ["phrase"],
+          "additionalProperties": false,
+          "properties": {
+            "phrase": { "type": "string" },
+            "disagreementNote": {
+              "type": "string",
+              "description": "If present, the nl2time cross-check is EXPECTED to disagree with the goldens; explain why (e.g. a filed nl2time issue). Otherwise disagreement fails verification."
+            }
+          }
+        }
+      }
+    },
+    "responseCheck": {
+      "oneOf": [
+        {
+          "type": "object",
+          "required": ["kind", "expected"],
+          "additionalProperties": false,
+          "properties": {
+            "kind": { "const": "count" },
+            "expected": { "type": "integer", "minimum": 0 },
+            "unit": { "type": "string" },
+            "note": { "type": "string" }
+          }
+        },
+        {
+          "type": "object",
+          "required": ["kind", "instant", "tz"],
+          "additionalProperties": false,
+          "properties": {
+            "kind": { "const": "civilDay" },
+            "instant": { "$ref": "#/$defs/instant" },
+            "tz": { "type": "string" },
+            "rejectUtcDay": { "type": "boolean" },
+            "note": { "type": "string" }
+          }
+        },
+        {
+          "type": "object",
+          "required": ["kind", "instant", "tz"],
+          "additionalProperties": false,
+          "properties": {
+            "kind": { "const": "clockTime" },
+            "instant": { "$ref": "#/$defs/instant" },
+            "tz": { "type": "string" },
+            "rejectUtcClock": { "type": "boolean" },
+            "note": { "type": "string" }
+          }
+        },
+        {
+          "type": "object",
+          "required": ["kind", "instant", "tz"],
+          "additionalProperties": false,
+          "properties": {
+            "kind": { "const": "weekday" },
+            "instant": { "$ref": "#/$defs/instant" },
+            "tz": { "type": "string" },
+            "note": { "type": "string" }
+          }
+        },
+        {
+          "type": "object",
+          "required": ["kind"],
+          "additionalProperties": false,
+          "properties": {
+            "kind": { "const": "regex" },
+            "accept": { "type": "string" },
+            "reject": { "type": "string" },
+            "note": { "type": "string" }
+          }
+        }
+      ]
+    }
+  }
+}

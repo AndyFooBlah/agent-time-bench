@@ -1,0 +1,23 @@
+[project]
+name = "atb"
+version = "0.1.0"
+description = "agent-time-bench harness: ADK agents over mocked tools, graded on date/time competence"
+readme = "README.md"
+authors = [
+    { name = "Andrew Brook", email = "andrew.brook@fooblah.org" }
+]
+requires-python = ">=3.12"
+dependencies = [
+    "google-adk>=2.5.0",
+    "jsonschema>=4.26.0",
+]
+
+[project.scripts]
+atb = "atb.cli:main"
+
+[dependency-groups]
+dev = ["pytest>=8"]
+
+[build-system]
+requires = ["uv_build>=0.11.16,<0.12.0"]
+build-backend = "uv_build"
