@@ -367,7 +367,7 @@
         ],
         "response": {
           "checks": [
-            { "kind": "regex", "accept": "\\byes\\b|you did|you went", "reject": "\\bno\\b|did not|didn't", "note": "There was a run that day" },
+            { "kind": "regex", "accept": "\\byes\\b|you did|you went", "reject": "did not|didn't", "note": "There was a run that day" },
             { "kind": "weekday", "instant": "2026-07-22T22:30:00Z", "tz": "America/New_York", "note": "Wednesday, 6:30pm EDT" }
           ]
         }

@@ -103,6 +103,52 @@ def _strict_day_patterns(local: datetime) -> list[str]:
     return _day_patterns(local)[:2] + _day_patterns(local)[3:]
 
 
+def _deictic_patterns(delta_days: int, weekday: int) -> list[str]:
+    """Relative renderings of a day `delta_days` from the speaker's today.
+
+    Correct agents (and nl2time's describe) say "yesterday at 10:05 PM" or
+    "last Saturday", not always an explicit date — day-identification checks
+    must accept those, anchored to the scenario's pinned now.
+    """
+    name = WEEKDAYS[weekday]
+    if delta_days == 0:
+        return [r"\btoday\b", r"\btonight\b", r"\bthis (?:morning|afternoon|evening)\b"]
+    if delta_days == -1:
+        return [r"\byesterday\b", r"\blast night\b"]
+    if delta_days == 1:
+        return [r"\btomorrow\b"]
+    if -7 <= delta_days <= -2:
+        return [rf"\b(?:last|this past|on)\s+{name}\b", rf"\b{name}\b"]
+    if 2 <= delta_days <= 7:
+        return [rf"\b(?:this|this coming|next|on)\s+{name}\b", rf"\b{name}\b"]
+    return []
+
+
+def _day_reference_patterns(local: datetime, now_local: datetime) -> list[str]:
+    """Everything that correctly identifies `local`'s civil day: explicit or deictic."""
+    delta = (local.date() - now_local.date()).days
+    return _day_patterns(local) + _deictic_patterns(delta, local.weekday())
+
+
+def _strict_day_rejects(utc_view: datetime, now_local: datetime, local: datetime) -> list[str]:
+    """Reject renderings of the WRONG (UTC) day, conservatively: explicit date
+    forms always; deictic words (today/yesterday/tomorrow/tonight) at delta
+    0/±1; qualified weekday forms only when the weekday actually differs from
+    the correct day's. Bare weekday names are never rejected (ambiguous)."""
+    patterns = _strict_day_patterns(utc_view)
+    delta = (utc_view.date() - now_local.date()).days
+    if delta == 0:
+        patterns += [r"\btoday\b", r"\btonight\b"]
+    elif delta == -1:
+        patterns += [r"\byesterday\b"]
+    elif delta == 1:
+        patterns += [r"\btomorrow\b"]
+    elif utc_view.weekday() != local.weekday() and 2 <= abs(delta) <= 7:
+        name = WEEKDAYS[utc_view.weekday()]
+        patterns += [rf"\b(?:last|this past|this coming|next|on)\s+{name}\b"]
+    return patterns
+
+
 def _clock_patterns(local: datetime) -> list[str]:
     h24, minute = local.hour, local.minute
     h12 = h24 % 12 or 12
@@ -125,7 +171,7 @@ def _any(patterns: list[str], text: str) -> str | None:
     return None
 
 
-def grade_response_check(check: dict[str, Any], text: str) -> dict[str, Any]:
+def grade_response_check(check: dict[str, Any], text: str, context: dict[str, Any] | None = None) -> dict[str, Any]:
     kind = check["kind"]
     result: dict[str, Any] = {"kind": kind, "note": check.get("note")}
 
@@ -145,24 +191,38 @@ def grade_response_check(check: dict[str, Any], text: str) -> dict[str, Any]:
     if kind == "count":
         n = check["expected"]
         forms = [str(n)] + ([NUMBER_WORDS[n]] if n < len(NUMBER_WORDS) else [])
+        if n == 1:
+            forms.append("once")
+        elif n == 2:
+            forms.append("twice")
         num = rf"\b(?:{'|'.join(forms)})\b"
         unit = check.get("unit")
         if unit:
             pat = rf"(?:{num}[^.!?\n]{{0,50}}?\b(?:{unit})\b|\b(?:{unit})\b[^.!?\n]{{0,30}}?{num})"
         else:
             pat = num
-        result["passed"] = re.search(pat, text) is not None
+        passed = re.search(pat, text) is not None
+        # Enumerations ("* PM-511 … * PM-509 …") are correct answers without a
+        # stated total: when the scenario declares an itemRegex, the right
+        # number of item mentions also passes.
+        item_regex = check.get("itemRegex")
+        if not passed and item_regex:
+            unique_items = set(re.findall(item_regex, text))
+            passed = len(unique_items) == n
+            result["item_matches"] = len(unique_items)
+        result["passed"] = passed
         return result
 
     local = _local(check["instant"], check["tz"])
     utc = parse_instant(check["instant"])  # aware UTC
+    now_local = _local(context["now"], check["tz"]) if context else local
 
     if kind == "civilDay":
-        hit = _any(_day_patterns(local), text)
+        hit = _any(_day_reference_patterns(local, now_local), text)
         result["passed"] = hit is not None
         result["accept_hit"] = hit
         if result["passed"] and check.get("rejectUtcDay") and utc.date() != local.date():
-            bad = _any(_strict_day_patterns(utc), text)
+            bad = _any(_strict_day_rejects(utc, now_local, local), text)
             if bad:
                 result["passed"] = False
                 result["reject_hit"] = bad
@@ -186,7 +246,10 @@ def grade_response_check(check: dict[str, Any], text: str) -> dict[str, Any]:
         return result
 
     if kind == "weekday":
-        result["passed"] = re.search(rf"\b{WEEKDAYS[local.weekday()]}\b", text) is not None
+        # Any correct identification of the day satisfies this: the weekday
+        # name, an explicit date, or a correct deictic ("yesterday").
+        patterns = [rf"\b{WEEKDAYS[local.weekday()]}\b"] + _day_reference_patterns(local, now_local)
+        result["passed"] = _any(patterns, text) is not None
         return result
 
     raise ValueError(f"unknown check kind {kind}")
@@ -194,11 +257,16 @@ def grade_response_check(check: dict[str, Any], text: str) -> dict[str, Any]:
 
 # ------------------------------------------------------------------- scenario
 
-def grade_scenario(scenario_expect: dict[str, Any], calls: list[dict[str, Any]], response: str) -> dict[str, Any]:
+def grade_scenario(
+    scenario_expect: dict[str, Any],
+    calls: list[dict[str, Any]],
+    response: str,
+    context: dict[str, Any] | None = None,
+) -> dict[str, Any]:
     text = normalize(response)
     tool_results = [grade_tool_call(e, calls) for e in scenario_expect.get("toolCalls", [])]
     check_results = [
-        grade_response_check(c, text)
+        grade_response_check(c, text, context)
         for c in scenario_expect.get("response", {}).get("checks", [])
     ]
     return {

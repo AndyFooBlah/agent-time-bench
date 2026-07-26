@@ -25,9 +25,11 @@ def main() -> None:
     run_p.add_argument("--out", default=None, help="Output JSONL (default: results/<ts>-<model>.jsonl)")
     run_p.add_argument("--concurrency", type=int, default=4)
 
-    for name in ("report", "failures"):
+    for name in ("report", "failures", "regrade"):
         p = sub.add_parser(name)
         p.add_argument("files", nargs="+", type=Path)
+        if name == "regrade":
+            p.add_argument("--out", type=Path, help="Write regraded rows to this JSONL")
 
     val_p = sub.add_parser("validate", help="Validate scenario files against the schema")
     val_p.add_argument("domains", nargs="*", help="Domain names (default: all)")
@@ -54,6 +56,27 @@ def main() -> None:
         return
 
     rows = load_rows(args.files)
+    if args.command == "regrade":
+        # Re-score recorded transcripts with the CURRENT graders and scenario
+        # expectations — grader iteration without model cost.
+        from .grading import grade_scenario
+
+        index = {
+            (d.name, s.id): s for d in load_all() for s in d.scenarios
+        }
+        regraded = []
+        for row in rows:
+            scenario = index[(row["domain"], row["scenario"])]
+            graded = grade_scenario(scenario.expect, row["tool_calls"], row["response"], dict(scenario.context))
+            regraded.append({**row, **graded})
+        if args.out:
+            with args.out.open("w") as fh:
+                for row in regraded:
+                    fh.write(json.dumps(row) + "\n")
+            print(f"wrote {len(regraded)} regraded rows to {args.out}")
+        print(json.dumps(summarize(regraded), indent=2))
+        return
+
     if args.command == "report":
         print(json.dumps(summarize(rows), indent=2))
         for direction in ("nl2time", "time2nl"):

@@ -55,7 +55,7 @@ async def run_scenario(
             error += "\n" + traceback.format_exc(limit=3)
             break
 
-    graded = grade_scenario(scenario.expect, recorder, final_text)
+    graded = grade_scenario(scenario.expect, recorder, final_text, dict(scenario.context))
     return {
         "run": {"model": model_id, "condition": condition, "skill": skill},
         "domain": domain.name,

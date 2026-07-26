@@ -226,7 +226,7 @@
       "expect": {
         "response": {
           "checks": [
-            { "kind": "regex", "accept": "\\byes\\b|shipped yesterday|went out yesterday|did ship", "reject": "\\bno\\b|did not ship|didn't ship|hasn't shipped|has not shipped|two days ago|day before yesterday|jul(?:y)?\\.? 14\\b|\\b14th\\b|\\btuesday\\b", "note": "Shipped Wednesday Jul 15, 8:30am AEST = yesterday. The UTC timestamp reads Tuesday Jul 14 — 'no / two days ago / July 14' are the naive readings" },
+            { "kind": "regex", "accept": "\\byes\\b|shipped yesterday|went out yesterday|did ship", "reject": "did not ship|didn't ship|hasn't shipped|has not shipped|two days ago|day before yesterday|jul(?:y)?\\.? 14\\b|\\b14th\\b|\\btuesday\\b", "note": "Shipped Wednesday Jul 15, 8:30am AEST = yesterday. The UTC timestamp reads Tuesday Jul 14 — 'no / two days ago / July 14' are the naive readings" },
             { "kind": "clockTime", "instant": "2026-07-14T22:30:00Z", "tz": "Australia/Sydney", "rejectUtcClock": true, "note": "If a time is given it must be 8:30 am local, not 10:30 pm" }
           ]
         }

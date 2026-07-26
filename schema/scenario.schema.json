@@ -154,6 +154,7 @@
             "kind": { "const": "count" },
             "expected": { "type": "integer", "minimum": 0 },
             "unit": { "type": "string" },
+            "itemRegex": { "type": "string", "description": "Counting this pattern's matches == expected also passes (enumerated answers without a stated total)" },
             "note": { "type": "string" }
           }
         },

@@ -6,10 +6,30 @@
       "name": "search_issues",
       "description": "Search issues in the tracker. Returns issues whose last-update timestamp falls in [updated_after, updated_before). Both bounds are required and must be UTC ISO 8601 strings (e.g. 2026-07-01T04:00:00Z); updated_after is inclusive, updated_before is exclusive.",
       "params": [
-        { "name": "query", "type": "string", "description": "Free-text filter on issue name (optional; empty returns all issues in range)", "required": false },
-        { "name": "status", "type": "string", "description": "Status filter, e.g. open, in_progress, in_review, done (optional)", "required": false },
-        { "name": "updated_after", "type": "string", "description": "Range start on last-update time, UTC ISO 8601, inclusive", "required": true },
-        { "name": "updated_before", "type": "string", "description": "Range end on last-update time, UTC ISO 8601, exclusive", "required": true }
+        {
+          "name": "query",
+          "type": "string",
+          "description": "Free-text filter on issue name (optional; empty returns all issues in range)",
+          "required": false
+        },
+        {
+          "name": "status",
+          "type": "string",
+          "description": "Status filter, e.g. open, in_progress, in_review, done (optional)",
+          "required": false
+        },
+        {
+          "name": "updated_after",
+          "type": "string",
+          "description": "Range start on last-update time, UTC ISO 8601, inclusive",
+          "required": true
+        },
+        {
+          "name": "updated_before",
+          "type": "string",
+          "description": "Range end on last-update time, UTC ISO 8601, exclusive",
+          "required": true
+        }
       ],
       "mock": {
         "kind": "filter-rows",
@@ -23,8 +43,18 @@
       "name": "list_due",
       "description": "List issues by due date. Returns issues whose due timestamp falls in [due_after, due_before). Both bounds are required and must be UTC ISO 8601 strings (e.g. 2026-07-01T04:00:00Z); due_after is inclusive, due_before is exclusive.",
       "params": [
-        { "name": "due_after", "type": "string", "description": "Range start on due time, UTC ISO 8601, inclusive", "required": true },
-        { "name": "due_before", "type": "string", "description": "Range end on due time, UTC ISO 8601, exclusive", "required": true }
+        {
+          "name": "due_after",
+          "type": "string",
+          "description": "Range start on due time, UTC ISO 8601, inclusive",
+          "required": true
+        },
+        {
+          "name": "due_before",
+          "type": "string",
+          "description": "Range end on due time, UTC ISO 8601, exclusive",
+          "required": true
+        }
       ],
       "mock": {
         "kind": "filter-rows",
@@ -38,31 +68,69 @@
       "name": "get_sprint",
       "description": "Return the current sprint: name, start and end timestamps (UTC ISO 8601).",
       "params": [],
-      "mock": { "kind": "static" }
+      "mock": {
+        "kind": "static"
+      }
     },
     {
       "name": "get_issue",
       "description": "Look up a single issue by its ID (e.g. PM-207). Returns the issue record including its last-update timestamp.",
       "params": [
-        { "name": "id", "type": "string", "description": "Issue ID, e.g. PM-207", "required": true }
+        {
+          "name": "id",
+          "type": "string",
+          "description": "Issue ID, e.g. PM-207",
+          "required": true
+        }
       ],
-      "mock": { "kind": "static" }
+      "mock": {
+        "kind": "static"
+      }
     }
   ],
   "scenarios": [
     {
       "id": "pm-01",
       "title": "due-by-end-of-next-week",
-      "context": { "now": "2026-07-22T09:10:00-04:00", "timeZone": "America/New_York", "locale": "en-US" },
+      "context": {
+        "now": "2026-07-22T09:10:00-04:00",
+        "timeZone": "America/New_York",
+        "locale": "en-US"
+      },
       "user": "What's due by the end of next week?",
       "mocks": {
         "list_due": {
           "rows": [
-            { "id": "PM-311", "name": "Ship billing webhook", "assignee": "Dana", "due_utc": "2026-07-23T19:00:00Z" },
-            { "id": "PM-318", "name": "Migrate CI runners", "assignee": "Luis", "due_utc": "2026-07-28T16:00:00Z" },
-            { "id": "PM-322", "name": "Q3 roadmap draft", "assignee": "Dana", "due_utc": "2026-08-01T02:00:00Z" },
-            { "id": "PM-330", "name": "SDK v2 beta", "assignee": "Mei", "due_utc": "2026-08-04T15:00:00Z" },
-            { "id": "PM-301", "name": "Backfill audit logs", "assignee": "Luis", "due_utc": "2026-07-20T12:00:00Z" }
+            {
+              "id": "PM-311",
+              "name": "Ship billing webhook",
+              "assignee": "Dana",
+              "due_utc": "2026-07-23T19:00:00Z"
+            },
+            {
+              "id": "PM-318",
+              "name": "Migrate CI runners",
+              "assignee": "Luis",
+              "due_utc": "2026-07-28T16:00:00Z"
+            },
+            {
+              "id": "PM-322",
+              "name": "Q3 roadmap draft",
+              "assignee": "Dana",
+              "due_utc": "2026-08-01T02:00:00Z"
+            },
+            {
+              "id": "PM-330",
+              "name": "SDK v2 beta",
+              "assignee": "Mei",
+              "due_utc": "2026-08-04T15:00:00Z"
+            },
+            {
+              "id": "PM-301",
+              "name": "Backfill audit logs",
+              "assignee": "Luis",
+              "due_utc": "2026-07-20T12:00:00Z"
+            }
           ]
         }
       },
@@ -70,13 +138,31 @@
         "toolCalls": [
           {
             "tool": "list_due",
-            "graded": ["due_after", "due_before"],
-            "argKinds": { "due_after": "instant-start", "due_before": "instant-end" },
+            "graded": [
+              "due_after",
+              "due_before"
+            ],
+            "argKinds": {
+              "due_after": "instant-start",
+              "due_before": "instant-end"
+            },
             "admissible": [
-              { "due_after": "2026-07-22T13:10:00Z", "due_before": "2026-08-02T04:00:00Z" },
-              { "due_after": "2026-07-22T04:00:00Z", "due_before": "2026-08-02T04:00:00Z" },
-              { "due_after": "2026-07-22T13:10:00Z", "due_before": "2026-08-03T04:00:00Z" },
-              { "due_after": "2026-07-22T04:00:00Z", "due_before": "2026-08-03T04:00:00Z" }
+              {
+                "due_after": "2026-07-22T13:10:00Z",
+                "due_before": "2026-08-02T04:00:00Z"
+              },
+              {
+                "due_after": "2026-07-22T04:00:00Z",
+                "due_before": "2026-08-02T04:00:00Z"
+              },
+              {
+                "due_after": "2026-07-22T13:10:00Z",
+                "due_before": "2026-08-03T04:00:00Z"
+              },
+              {
+                "due_after": "2026-07-22T04:00:00Z",
+                "due_before": "2026-08-03T04:00:00Z"
+              }
             ],
             "verifyPhrase": {
               "phrase": "by the end of next week",
@@ -84,23 +170,60 @@
             }
           }
         ],
-        "response": { "checks": [ { "kind": "count", "expected": 3, "unit": "issues?|tickets?|items?|tasks?|things?", "note": "PM-311, PM-318, PM-322 are due before every admissible end; PM-330 (Aug 4) and the already-past PM-301 (Jul 20) are not" } ] }
+        "response": {
+          "checks": [
+            {
+              "kind": "count",
+              "expected": 3,
+              "unit": "issues?|tickets?|items?|tasks?|things?",
+              "note": "PM-311, PM-318, PM-322 are due before every admissible end; PM-330 (Aug 4) and the already-past PM-301 (Jul 20) are not",
+              "itemRegex": "pm-\\d+"
+            }
+          ]
+        }
       },
-      "directions": ["nl2time", "time2nl"],
+      "directions": [
+        "nl2time",
+        "time2nl"
+      ],
       "rationale": "Now = WEDNESDAY Jul 22 2026, 9:10am EDT (UTC-4) — midweek so both week conventions agree on next week's interior. 'By the end of next week' = [start, end-of-next-week). End: Sunday-start (en-US CLDR) next week is Sun Jul 26..Sat Aug 1, so end = Sun Aug 2 00:00 ET = 2026-08-02T04:00Z (this matches the bridge's END for 'end of next week'); Monday-start (ISO) next week is Mon Jul 27..Sun Aug 2, end = Mon Aug 3 00:00 ET = 2026-08-03T04:00Z. Start: now itself (2026-07-22T13:10Z) or start of today (Jul 22 00:00 ET = 04:00Z); both admitted, crossed with both ends = 4 tuples. Rows: PM-311 Thu Jul 23 3pm ET, PM-318 Tue Jul 28 noon ET, and PM-322 at 2026-08-01T02:00Z = Fri Jul 31 10:00pm EDT (UTC-day Aug 1 flavor row) are inside ALL tuples; PM-330 Tue Aug 4 is past both ends; PM-301 Mon Jul 20 predates both starts. No rows between today-start and now, and none on the disputed edge day Sun Aug 2 local, so the count is 3 under every tuple."
     },
     {
       "id": "pm-02",
       "title": "standup-shipped-yesterday",
-      "context": { "now": "2026-07-28T08:45:00-05:00", "timeZone": "America/Chicago", "locale": "en-US" },
+      "context": {
+        "now": "2026-07-28T08:45:00-05:00",
+        "timeZone": "America/Chicago",
+        "locale": "en-US"
+      },
       "user": "Standup time — what did the team ship yesterday?",
       "mocks": {
         "search_issues": {
           "rows": [
-            { "id": "PM-402", "name": "Dark mode toggle", "status": "done", "updated_utc": "2026-07-27T19:00:00Z" },
-            { "id": "PM-407", "name": "Export to CSV", "status": "done", "updated_utc": "2026-07-28T03:30:00Z" },
-            { "id": "PM-398", "name": "Rate limiter fix", "status": "done", "updated_utc": "2026-07-27T04:15:00Z" },
-            { "id": "PM-395", "name": "Onboarding email copy", "status": "done", "updated_utc": "2026-07-24T20:00:00Z" }
+            {
+              "id": "PM-402",
+              "name": "Dark mode toggle",
+              "status": "done",
+              "updated_utc": "2026-07-27T19:00:00Z"
+            },
+            {
+              "id": "PM-407",
+              "name": "Export to CSV",
+              "status": "done",
+              "updated_utc": "2026-07-28T03:30:00Z"
+            },
+            {
+              "id": "PM-398",
+              "name": "Rate limiter fix",
+              "status": "done",
+              "updated_utc": "2026-07-27T04:15:00Z"
+            },
+            {
+              "id": "PM-395",
+              "name": "Onboarding email copy",
+              "status": "done",
+              "updated_utc": "2026-07-24T20:00:00Z"
+            }
           ]
         }
       },
@@ -108,36 +231,85 @@
         "toolCalls": [
           {
             "tool": "search_issues",
-            "graded": ["updated_after", "updated_before"],
-            "argKinds": { "updated_after": "instant-start", "updated_before": "instant-end" },
-            "admissible": [
-              { "updated_after": "2026-07-27T05:00:00Z", "updated_before": "2026-07-28T05:00:00Z" }
+            "graded": [
+              "updated_after",
+              "updated_before"
             ],
-            "verifyPhrase": { "phrase": "yesterday" }
+            "argKinds": {
+              "updated_after": "instant-start",
+              "updated_before": "instant-end"
+            },
+            "admissible": [
+              {
+                "updated_after": "2026-07-27T05:00:00Z",
+                "updated_before": "2026-07-28T05:00:00Z"
+              }
+            ],
+            "verifyPhrase": {
+              "phrase": "yesterday"
+            }
           }
         ],
         "response": {
           "checks": [
-            { "kind": "count", "expected": 2, "unit": "issues?|tickets?|items?|things?|features?", "note": "Dark mode toggle (Mon 2pm CDT) and Export to CSV (Mon 10:30pm CDT)" },
-            { "kind": "regex", "accept": "export to csv|pm-407", "reject": "rate limiter|pm-398", "note": "Must include the late-Monday-evening ship and exclude the Sunday-night one" }
+            {
+              "kind": "count",
+              "expected": 2,
+              "unit": "issues?|tickets?|items?|things?|features?",
+              "note": "Dark mode toggle (Mon 2pm CDT) and Export to CSV (Mon 10:30pm CDT)",
+              "itemRegex": "pm-\\d+"
+            },
+            {
+              "kind": "regex",
+              "accept": "export to csv|pm-407",
+              "reject": "rate limiter|pm-398",
+              "note": "Must include the late-Monday-evening ship and exclude the Sunday-night one"
+            }
           ]
         }
       },
-      "directions": ["nl2time", "time2nl"],
+      "directions": [
+        "nl2time",
+        "time2nl"
+      ],
       "rationale": "Now = TUESDAY Jul 28 2026, 8:45am CDT (UTC-5). Yesterday = civil Monday Jul 27 in Chicago: [Jul 27 00:00 CT, Jul 28 00:00 CT) = [2026-07-27T05:00Z, 2026-07-28T05:00Z). Double UTC trap: PM-407 (2026-07-28T03:30Z) is Monday 10:30pm CDT — inside — while PM-398 (2026-07-27T04:15Z) is Sunday 11:15pm CDT — outside — yet naive UTC-day bounds [Jul 27 00Z, Jul 28 00Z) select exactly the wrong one of the pair. PM-402 (Mon 2:00pm CDT) is interior; PM-395 (Fri Jul 24) is out of range. Correct: 2 issues shipped — PM-402 and PM-407."
     },
     {
       "id": "pm-03",
       "title": "touched-past-24-hours",
-      "context": { "now": "2026-08-01T17:40:00-04:00", "timeZone": "America/New_York", "locale": "en-US" },
+      "context": {
+        "now": "2026-08-01T17:40:00-04:00",
+        "timeZone": "America/New_York",
+        "locale": "en-US"
+      },
       "user": "Which issues were touched in the past 24 hours?",
       "mocks": {
         "search_issues": {
           "rows": [
-            { "id": "PM-511", "name": "Flaky checkout test", "status": "in_progress", "updated_utc": "2026-07-31T22:30:00Z" },
-            { "id": "PM-509", "name": "Session token rotation", "status": "in_progress", "updated_utc": "2026-08-01T02:30:00Z" },
-            { "id": "PM-514", "name": "Payment retry queue", "status": "in_review", "updated_utc": "2026-08-01T15:00:00Z" },
-            { "id": "PM-502", "name": "Update dependencies", "status": "done", "updated_utc": "2026-07-31T20:00:00Z" }
+            {
+              "id": "PM-511",
+              "name": "Flaky checkout test",
+              "status": "in_progress",
+              "updated_utc": "2026-07-31T22:30:00Z"
+            },
+            {
+              "id": "PM-509",
+              "name": "Session token rotation",
+              "status": "in_progress",
+              "updated_utc": "2026-08-01T02:30:00Z"
+            },
+            {
+              "id": "PM-514",
+              "name": "Payment retry queue",
+              "status": "in_review",
+              "updated_utc": "2026-08-01T15:00:00Z"
+            },
+            {
+              "id": "PM-502",
+              "name": "Update dependencies",
+              "status": "done",
+              "updated_utc": "2026-07-31T20:00:00Z"
+            }
           ]
         }
       },
@@ -145,54 +317,134 @@
         "toolCalls": [
           {
             "tool": "search_issues",
-            "graded": ["updated_after", "updated_before"],
-            "argKinds": { "updated_after": "instant-start", "updated_before": "instant-end" },
-            "admissible": [
-              { "updated_after": "2026-07-31T21:40:00Z", "updated_before": "2026-08-01T21:40:00Z" }
+            "graded": [
+              "updated_after",
+              "updated_before"
             ],
-            "verifyPhrase": { "phrase": "the past 24 hours" }
+            "argKinds": {
+              "updated_after": "instant-start",
+              "updated_before": "instant-end"
+            },
+            "admissible": [
+              {
+                "updated_after": "2026-07-31T21:40:00Z",
+                "updated_before": "2026-08-01T21:40:00Z"
+              }
+            ],
+            "verifyPhrase": {
+              "phrase": "the past 24 hours"
+            }
           }
         ],
-        "response": { "checks": [ { "kind": "count", "expected": 3, "unit": "issues?|tickets?|items?", "note": "PM-511, PM-509, PM-514; PM-502 was updated 25h40m before now" } ] }
+        "response": {
+          "checks": [
+            {
+              "kind": "count",
+              "expected": 3,
+              "unit": "issues?|tickets?|items?",
+              "note": "PM-511, PM-509, PM-514; PM-502 was updated 25h40m before now",
+              "itemRegex": "pm-\\d+"
+            }
+          ]
+        }
       },
-      "directions": ["nl2time", "time2nl"],
+      "directions": [
+        "nl2time",
+        "time2nl"
+      ],
       "rationale": "Now = SATURDAY Aug 1 2026, 5:40pm EDT (UTC-4), i.e. 2026-08-01T21:40Z — window sits on the Jul/Aug month boundary. 'Past 24 hours' is pure hour arithmetic, not a civil day: [now-24h, now) = [2026-07-31T21:40Z, 2026-08-01T21:40Z), matching the bridge exactly. In range: PM-511 (Jul 31 22:30Z = Fri 6:30pm EDT, 50 min after the start), PM-509 (Aug 1 02:30Z = Fri 10:30pm EDT), PM-514 (Aug 1 15:00Z = Sat 11:00am EDT) — count 3. PM-502 (Jul 31 20:00Z) is 25h40m before now — excluded; an agent that rounds to 'since midnight' or 'since yesterday 00:00' would wrongly include it (its bounds also fail arg grading)."
     },
     {
       "id": "pm-04",
       "title": "sprint-end-local-day",
-      "context": { "now": "2026-07-24T09:30:00-04:00", "timeZone": "America/New_York", "locale": "en-US" },
+      "context": {
+        "now": "2026-07-24T09:30:00-04:00",
+        "timeZone": "America/New_York",
+        "locale": "en-US"
+      },
       "user": "When does the current sprint end?",
       "mocks": {
         "get_sprint": {
-          "response": { "name": "Sprint 14", "start_utc": "2026-07-20T04:00:00Z", "end_utc": "2026-08-01T03:59:00Z" }
+          "response": {
+            "name": "Sprint 14",
+            "start_utc": "2026-07-20T04:00:00Z",
+            "end_utc": "2026-08-01T03:59:00Z"
+          }
         }
       },
       "expect": {
         "response": {
           "checks": [
-            { "kind": "civilDay", "instant": "2026-08-01T03:59:00Z", "tz": "America/New_York", "rejectUtcDay": true, "note": "Sprint ends 11:59pm EDT July 31; the UTC timestamp reads August 1 — must answer July 31" },
-            { "kind": "weekday", "instant": "2026-08-01T03:59:00Z", "tz": "America/New_York", "note": "July 31 2026 is a Friday" },
-            { "kind": "clockTime", "instant": "2026-08-01T03:59:00Z", "tz": "America/New_York", "rejectUtcClock": true, "note": "If a time is given it must be 11:59 pm local, not 3:59" }
+            {
+              "kind": "civilDay",
+              "instant": "2026-08-01T03:59:00Z",
+              "tz": "America/New_York",
+              "rejectUtcDay": true,
+              "note": "Sprint ends 11:59pm EDT July 31; the UTC timestamp reads August 1 — must answer July 31"
+            },
+            {
+              "kind": "weekday",
+              "instant": "2026-08-01T03:59:00Z",
+              "tz": "America/New_York",
+              "note": "July 31 2026 is a Friday"
+            },
+            {
+              "kind": "clockTime",
+              "instant": "2026-08-01T03:59:00Z",
+              "tz": "America/New_York",
+              "rejectUtcClock": true,
+              "note": "If a time is given it must be 11:59 pm local, not 3:59"
+            }
           ]
         }
       },
-      "directions": ["time2nl"],
+      "directions": [
+        "time2nl"
+      ],
       "rationale": "Pure time→NL: get_sprint takes no arguments and returns end_utc = 2026-08-01T03:59:00Z. In America/New_York (EDT, UTC-4) that is FRIDAY July 31 2026, 11:59pm — the classic end-of-day sprint boundary stored in UTC. Correct answers say the sprint ends Friday July 31; 'August 1' is the naive UTC-day reading and fails (rejectUtcDay — days verified to differ). clockTime fires only if a clock time appears, in which case it must be the local 11:59 pm, not 03:59 (clocks verified to differ)."
     },
     {
       "id": "pm-05",
       "title": "still-open-from-june",
-      "context": { "now": "2026-07-19T18:00:00-04:00", "timeZone": "America/New_York", "locale": "en-US" },
+      "context": {
+        "now": "2026-07-19T18:00:00-04:00",
+        "timeZone": "America/New_York",
+        "locale": "en-US"
+      },
       "user": "Anything still open from June?",
       "mocks": {
         "search_issues": {
           "rows": [
-            { "id": "PM-233", "name": "Legacy import bug", "status": "open", "updated_utc": "2026-06-10T14:00:00Z" },
-            { "id": "PM-241", "name": "Search relevance tuning", "status": "open", "updated_utc": "2026-06-24T18:30:00Z" },
-            { "id": "PM-248", "name": "Webhook retries", "status": "open", "updated_utc": "2026-07-01T02:30:00Z" },
-            { "id": "PM-229", "name": "Chart tooltip glitch", "status": "open", "updated_utc": "2026-06-01T03:00:00Z" },
-            { "id": "PM-252", "name": "SSO metadata refresh", "status": "open", "updated_utc": "2026-07-10T16:00:00Z" }
+            {
+              "id": "PM-233",
+              "name": "Legacy import bug",
+              "status": "open",
+              "updated_utc": "2026-06-10T14:00:00Z"
+            },
+            {
+              "id": "PM-241",
+              "name": "Search relevance tuning",
+              "status": "open",
+              "updated_utc": "2026-06-24T18:30:00Z"
+            },
+            {
+              "id": "PM-248",
+              "name": "Webhook retries",
+              "status": "open",
+              "updated_utc": "2026-07-01T02:30:00Z"
+            },
+            {
+              "id": "PM-229",
+              "name": "Chart tooltip glitch",
+              "status": "open",
+              "updated_utc": "2026-06-01T03:00:00Z"
+            },
+            {
+              "id": "PM-252",
+              "name": "SSO metadata refresh",
+              "status": "open",
+              "updated_utc": "2026-07-10T16:00:00Z"
+            }
           ]
         }
       },
@@ -200,32 +452,85 @@
         "toolCalls": [
           {
             "tool": "search_issues",
-            "graded": ["updated_after", "updated_before"],
-            "argKinds": { "updated_after": "instant-start", "updated_before": "instant-end" },
-            "admissible": [
-              { "updated_after": "2026-06-01T04:00:00Z", "updated_before": "2026-07-01T04:00:00Z" }
+            "graded": [
+              "updated_after",
+              "updated_before"
             ],
-            "verifyPhrase": { "phrase": "from June" }
+            "argKinds": {
+              "updated_after": "instant-start",
+              "updated_before": "instant-end"
+            },
+            "admissible": [
+              {
+                "updated_after": "2026-06-01T04:00:00Z",
+                "updated_before": "2026-07-01T04:00:00Z"
+              }
+            ],
+            "verifyPhrase": {
+              "phrase": "from June"
+            }
           }
         ],
-        "response": { "checks": [ { "kind": "count", "expected": 3, "unit": "issues?|tickets?|items?", "note": "PM-233, PM-241, and PM-248 (last touched Jun 30 10:30pm EDT); PM-229 was May 31 local and PM-252 is July" } ] }
+        "response": {
+          "checks": [
+            {
+              "kind": "count",
+              "expected": 3,
+              "unit": "issues?|tickets?|items?",
+              "note": "PM-233, PM-241, and PM-248 (last touched Jun 30 10:30pm EDT); PM-229 was May 31 local and PM-252 is July",
+              "itemRegex": "pm-\\d+"
+            }
+          ]
+        }
       },
-      "directions": ["nl2time", "time2nl"],
+      "directions": [
+        "nl2time",
+        "time2nl"
+      ],
       "rationale": "Now = SUNDAY Jul 19 2026, 6:00pm EDT. 'From June' = the June 2026 civil month in the user's zone: Jun 1 00:00 ET..Jul 1 00:00 ET = [2026-06-01T04:00Z, 2026-07-01T04:00Z) (EDT, UTC-4, throughout). Symmetric UTC trap at both edges: PM-248 (2026-07-01T02:30Z) is Jun 30 10:30pm EDT — inside local June though its UTC day is July 1 — while PM-229 (2026-06-01T03:00Z) is May 31 11:00pm EDT — outside local June though its UTC day is June 1. Naive UTC-month bounds [Jun 1 00Z, Jul 1 00Z) swap exactly those two rows. PM-252 (Jul 10) is out of range. All in-range rows have status open, so the count is 3 regardless of status filtering."
     },
     {
       "id": "pm-06",
       "title": "changed-while-out-last-week",
-      "context": { "now": "2026-07-08T11:30:00-04:00", "timeZone": "America/New_York", "locale": "en-US" },
+      "context": {
+        "now": "2026-07-08T11:30:00-04:00",
+        "timeZone": "America/New_York",
+        "locale": "en-US"
+      },
       "user": "I was out last week — what changed while I was gone?",
       "mocks": {
         "search_issues": {
           "rows": [
-            { "id": "PM-152", "name": "API pagination rework", "status": "in_review", "updated_utc": "2026-06-30T15:00:00Z" },
-            { "id": "PM-160", "name": "Mobile crash on launch", "status": "done", "updated_utc": "2026-07-02T18:20:00Z" },
-            { "id": "PM-166", "name": "Holiday deploy freeze doc", "status": "done", "updated_utc": "2026-07-05T02:10:00Z" },
-            { "id": "PM-170", "name": "Billing dunning emails", "status": "in_progress", "updated_utc": "2026-07-07T14:00:00Z" },
-            { "id": "PM-149", "name": "Access review Q2", "status": "done", "updated_utc": "2026-06-26T12:00:00Z" }
+            {
+              "id": "PM-152",
+              "name": "API pagination rework",
+              "status": "in_review",
+              "updated_utc": "2026-06-30T15:00:00Z"
+            },
+            {
+              "id": "PM-160",
+              "name": "Mobile crash on launch",
+              "status": "done",
+              "updated_utc": "2026-07-02T18:20:00Z"
+            },
+            {
+              "id": "PM-166",
+              "name": "Holiday deploy freeze doc",
+              "status": "done",
+              "updated_utc": "2026-07-05T02:10:00Z"
+            },
+            {
+              "id": "PM-170",
+              "name": "Billing dunning emails",
+              "status": "in_progress",
+              "updated_utc": "2026-07-07T14:00:00Z"
+            },
+            {
+              "id": "PM-149",
+              "name": "Access review Q2",
+              "status": "done",
+              "updated_utc": "2026-06-26T12:00:00Z"
+            }
           ]
         }
       },
@@ -233,32 +538,83 @@
         "toolCalls": [
           {
             "tool": "search_issues",
-            "graded": ["updated_after", "updated_before"],
-            "argKinds": { "updated_after": "instant-start", "updated_before": "instant-end" },
-            "admissible": [
-              { "updated_after": "2026-06-28T04:00:00Z", "updated_before": "2026-07-05T04:00:00Z" },
-              { "updated_after": "2026-06-29T04:00:00Z", "updated_before": "2026-07-06T04:00:00Z" }
+            "graded": [
+              "updated_after",
+              "updated_before"
             ],
-            "verifyPhrase": { "phrase": "last week" }
+            "argKinds": {
+              "updated_after": "instant-start",
+              "updated_before": "instant-end"
+            },
+            "admissible": [
+              {
+                "updated_after": "2026-06-28T04:00:00Z",
+                "updated_before": "2026-07-05T04:00:00Z"
+              },
+              {
+                "updated_after": "2026-06-29T04:00:00Z",
+                "updated_before": "2026-07-06T04:00:00Z"
+              }
+            ],
+            "verifyPhrase": {
+              "phrase": "last week"
+            }
           }
         ],
-        "response": { "checks": [ { "kind": "count", "expected": 3, "unit": "issues?|tickets?|items?|changes?", "note": "PM-152, PM-160, PM-166 under either week convention; PM-170 is this week, PM-149 the week before" } ] }
+        "response": {
+          "checks": [
+            {
+              "kind": "count",
+              "expected": 3,
+              "unit": "issues?|tickets?|items?|changes?",
+              "note": "PM-152, PM-160, PM-166 under either week convention; PM-170 is this week, PM-149 the week before",
+              "itemRegex": "pm-\\d+"
+            }
+          ]
+        }
       },
-      "directions": ["nl2time", "time2nl"],
+      "directions": [
+        "nl2time",
+        "time2nl"
+      ],
       "rationale": "Now = WEDNESDAY Jul 8 2026, 11:30am EDT — midweek on purpose so both week conventions agree on the interior; last week straddles the Jun/Jul month boundary. Sunday-start (en-US CLDR): Sun Jun 28..Sun Jul 5 = [2026-06-28T04:00Z, 2026-07-05T04:00Z) (matches the bridge); Monday-start (ISO): Mon Jun 29..Mon Jul 6 = [2026-06-29T04:00Z, 2026-07-06T04:00Z). In range under BOTH: PM-152 Tue Jun 30 11:00am ET, PM-160 Thu Jul 2 2:20pm ET, and PM-166 at 2026-07-05T02:10Z = SATURDAY Jul 4 10:10pm EDT — the trap row, whose UTC day (Jul 5) would fall outside a naive UTC Sunday-start window [Jun 28 00Z, Jul 5 00Z). PM-170 (Tue Jul 7, this week) and PM-149 (Fri Jun 26, the week before) are outside both readings. No rows on the disputed edge days (Sun Jun 28, Sun Jul 5 local), so the count is 3 under every admissible tuple."
     },
     {
       "id": "pm-07",
       "title": "berlin-due-tomorrow",
-      "context": { "now": "2026-07-16T15:20:00+02:00", "timeZone": "Europe/Berlin", "locale": "en-DE" },
+      "context": {
+        "now": "2026-07-16T15:20:00+02:00",
+        "timeZone": "Europe/Berlin",
+        "locale": "en-DE"
+      },
       "user": "Which tickets are due tomorrow?",
       "mocks": {
         "list_due": {
           "rows": [
-            { "id": "PM-612", "name": "Localize checkout strings", "assignee": "Jonas", "due_utc": "2026-07-16T22:15:00Z" },
-            { "id": "PM-615", "name": "GDPR data export", "assignee": "Femke", "due_utc": "2026-07-17T10:00:00Z" },
-            { "id": "PM-618", "name": "Invoice PDF layout", "assignee": "Jonas", "due_utc": "2026-07-17T22:30:00Z" },
-            { "id": "PM-604", "name": "Cookie banner audit", "assignee": "Femke", "due_utc": "2026-07-16T12:00:00Z" }
+            {
+              "id": "PM-612",
+              "name": "Localize checkout strings",
+              "assignee": "Jonas",
+              "due_utc": "2026-07-16T22:15:00Z"
+            },
+            {
+              "id": "PM-615",
+              "name": "GDPR data export",
+              "assignee": "Femke",
+              "due_utc": "2026-07-17T10:00:00Z"
+            },
+            {
+              "id": "PM-618",
+              "name": "Invoice PDF layout",
+              "assignee": "Jonas",
+              "due_utc": "2026-07-17T22:30:00Z"
+            },
+            {
+              "id": "PM-604",
+              "name": "Cookie banner audit",
+              "assignee": "Femke",
+              "due_utc": "2026-07-16T12:00:00Z"
+            }
           ]
         }
       },
@@ -266,63 +622,144 @@
         "toolCalls": [
           {
             "tool": "list_due",
-            "graded": ["due_after", "due_before"],
-            "argKinds": { "due_after": "instant-start", "due_before": "instant-end" },
-            "admissible": [
-              { "due_after": "2026-07-16T22:00:00Z", "due_before": "2026-07-17T22:00:00Z" }
+            "graded": [
+              "due_after",
+              "due_before"
             ],
-            "verifyPhrase": { "phrase": "tomorrow" }
+            "argKinds": {
+              "due_after": "instant-start",
+              "due_before": "instant-end"
+            },
+            "admissible": [
+              {
+                "due_after": "2026-07-16T22:00:00Z",
+                "due_before": "2026-07-17T22:00:00Z"
+              }
+            ],
+            "verifyPhrase": {
+              "phrase": "tomorrow"
+            }
           }
         ],
         "response": {
           "checks": [
-            { "kind": "count", "expected": 2, "unit": "tickets?|issues?|items?|tasks?", "note": "PM-612 (Fri 00:15 CEST) and PM-615 (Fri noon)" },
-            { "kind": "regex", "accept": "localize checkout|pm-612", "reject": "invoice pdf|pm-618", "note": "Must include the just-after-midnight Friday ticket and exclude the just-after-midnight Saturday one" }
+            {
+              "kind": "count",
+              "expected": 2,
+              "unit": "tickets?|issues?|items?|tasks?",
+              "note": "PM-612 (Fri 00:15 CEST) and PM-615 (Fri noon)",
+              "itemRegex": "pm-\\d+"
+            },
+            {
+              "kind": "regex",
+              "accept": "localize checkout|pm-612",
+              "reject": "invoice pdf|pm-618",
+              "note": "Must include the just-after-midnight Friday ticket and exclude the just-after-midnight Saturday one"
+            }
           ]
         }
       },
-      "directions": ["nl2time", "time2nl"],
+      "directions": [
+        "nl2time",
+        "time2nl"
+      ],
       "rationale": "Now = THURSDAY Jul 16 2026, 3:20pm CEST (Berlin summer time, UTC+2). Tomorrow = civil Friday Jul 17 in Berlin: [Jul 17 00:00 CEST, Jul 18 00:00 CEST) = [2026-07-16T22:00Z, 2026-07-17T22:00Z) — bounds land at 22:00Z, not midnight UTC. Double trap: PM-612 (2026-07-16T22:15Z) is Friday 00:15 CEST — inside — while PM-618 (2026-07-17T22:30Z) is Saturday 00:30 CEST — outside — yet naive UTC-day bounds [Jul 17 00Z, Jul 18 00Z) select exactly the wrong one of the pair. PM-615 (Friday noon local) is interior; PM-604 is due today (Thu). Correct: 2 tickets, PM-612 and PM-615."
     },
     {
       "id": "pm-08",
       "title": "issue-last-updated-plain",
-      "context": { "now": "2026-07-21T10:00:00-04:00", "timeZone": "America/New_York", "locale": "en-US" },
+      "context": {
+        "now": "2026-07-21T10:00:00-04:00",
+        "timeZone": "America/New_York",
+        "locale": "en-US"
+      },
       "user": "When was PM-207 last updated?",
       "mocks": {
         "get_issue": {
-          "response": { "id": "PM-207", "name": "Rework notification digest", "status": "in_review", "assignee": "Priya", "updated_utc": "2026-07-17T18:22:00Z" }
+          "response": {
+            "id": "PM-207",
+            "name": "Rework notification digest",
+            "status": "in_review",
+            "assignee": "Priya",
+            "updated_utc": "2026-07-17T18:22:00Z"
+          }
         },
         "search_issues": {
           "rows": [
-            { "id": "PM-207", "name": "Rework notification digest", "status": "in_review", "updated_utc": "2026-07-17T18:22:00Z" }
+            {
+              "id": "PM-207",
+              "name": "Rework notification digest",
+              "status": "in_review",
+              "updated_utc": "2026-07-17T18:22:00Z"
+            }
           ]
         }
       },
       "expect": {
         "response": {
           "checks": [
-            { "kind": "civilDay", "instant": "2026-07-17T18:22:00Z", "tz": "America/New_York", "note": "2:22pm EDT July 17 — UTC and local agree on the day" },
-            { "kind": "weekday", "instant": "2026-07-17T18:22:00Z", "tz": "America/New_York", "note": "July 17 2026 is a Friday" }
+            {
+              "kind": "civilDay",
+              "instant": "2026-07-17T18:22:00Z",
+              "tz": "America/New_York",
+              "note": "2:22pm EDT July 17 — UTC and local agree on the day"
+            },
+            {
+              "kind": "weekday",
+              "instant": "2026-07-17T18:22:00Z",
+              "tz": "America/New_York",
+              "note": "July 17 2026 is a Friday"
+            }
           ]
         }
       },
-      "directions": ["time2nl"],
+      "directions": [
+        "time2nl"
+      ],
       "rationale": "Trap-free baseline, pure time→NL: get_issue(PM-207) returns updated_utc = 2026-07-17T18:22:00Z, which is FRIDAY July 17 2026, 2:22pm EDT — the UTC and New York calendar days coincide, so there is no rejection trap; the scenario simply checks that the day (July 17 / Friday) is reported. A search_issues mock carrying the same row is provided in case the agent searches instead of looking up by ID."
     },
     {
       "id": "pm-09",
       "title": "kolkata-due-this-weekend",
-      "context": { "now": "2026-07-09T19:05:00+05:30", "timeZone": "Asia/Kolkata", "locale": "en-IN" },
+      "context": {
+        "now": "2026-07-09T19:05:00+05:30",
+        "timeZone": "Asia/Kolkata",
+        "locale": "en-IN"
+      },
       "user": "What's due this weekend?",
       "mocks": {
         "list_due": {
           "rows": [
-            { "id": "PM-702", "name": "Data pipeline cutover", "assignee": "Arjun", "due_utc": "2026-07-10T20:00:00Z" },
-            { "id": "PM-705", "name": "Sprint demo prep", "assignee": "Kavya", "due_utc": "2026-07-11T04:30:00Z" },
-            { "id": "PM-709", "name": "Load test report", "assignee": "Arjun", "due_utc": "2026-07-12T12:30:00Z" },
-            { "id": "PM-713", "name": "Vendor contract renewal", "assignee": "Kavya", "due_utc": "2026-07-12T18:45:00Z" },
-            { "id": "PM-698", "name": "Standup notes automation", "assignee": "Arjun", "due_utc": "2026-07-09T10:00:00Z" }
+            {
+              "id": "PM-702",
+              "name": "Data pipeline cutover",
+              "assignee": "Arjun",
+              "due_utc": "2026-07-10T20:00:00Z"
+            },
+            {
+              "id": "PM-705",
+              "name": "Sprint demo prep",
+              "assignee": "Kavya",
+              "due_utc": "2026-07-11T04:30:00Z"
+            },
+            {
+              "id": "PM-709",
+              "name": "Load test report",
+              "assignee": "Arjun",
+              "due_utc": "2026-07-12T12:30:00Z"
+            },
+            {
+              "id": "PM-713",
+              "name": "Vendor contract renewal",
+              "assignee": "Kavya",
+              "due_utc": "2026-07-12T18:45:00Z"
+            },
+            {
+              "id": "PM-698",
+              "name": "Standup notes automation",
+              "assignee": "Arjun",
+              "due_utc": "2026-07-09T10:00:00Z"
+            }
           ]
         }
       },
@@ -330,10 +767,19 @@
         "toolCalls": [
           {
             "tool": "list_due",
-            "graded": ["due_after", "due_before"],
-            "argKinds": { "due_after": "instant-start", "due_before": "instant-end" },
+            "graded": [
+              "due_after",
+              "due_before"
+            ],
+            "argKinds": {
+              "due_after": "instant-start",
+              "due_before": "instant-end"
+            },
             "admissible": [
-              { "due_after": "2026-07-10T18:30:00Z", "due_before": "2026-07-12T18:30:00Z" }
+              {
+                "due_after": "2026-07-10T18:30:00Z",
+                "due_before": "2026-07-12T18:30:00Z"
+              }
             ],
             "verifyPhrase": {
               "phrase": "this weekend",
@@ -341,23 +787,60 @@
             }
           }
         ],
-        "response": { "checks": [ { "kind": "count", "expected": 3, "unit": "issues?|tickets?|items?|tasks?", "note": "PM-702 (Sat 1:30am IST), PM-705 (Sat 10am), PM-709 (Sun 6pm); PM-713 is Monday 00:15 IST" } ] }
+        "response": {
+          "checks": [
+            {
+              "kind": "count",
+              "expected": 3,
+              "unit": "issues?|tickets?|items?|tasks?",
+              "note": "PM-702 (Sat 1:30am IST), PM-705 (Sat 10am), PM-709 (Sun 6pm); PM-713 is Monday 00:15 IST",
+              "itemRegex": "pm-\\d+"
+            }
+          ]
+        }
       },
-      "directions": ["nl2time", "time2nl"],
+      "directions": [
+        "nl2time",
+        "time2nl"
+      ],
       "rationale": "Now = THURSDAY Jul 9 2026, 7:05pm IST (Asia/Kolkata, UTC+5:30 — non-integer-hour offset). This weekend = the upcoming Sat Jul 11 + Sun Jul 12: [Sat Jul 11 00:00 IST, Mon Jul 13 00:00 IST) = [2026-07-10T18:30Z, 2026-07-12T18:30Z) — bounds land at :30 past the UTC hour. Traps: PM-702 (2026-07-10T20:00Z) is Saturday 1:30am IST — inside — but a naive UTC weekend [Jul 11 00Z, Jul 13 00Z) drops it; PM-713 (2026-07-12T18:45Z) is Monday 00:15 IST — outside — but the naive UTC window keeps it. PM-705 (Sat 10:00am IST) and PM-709 (Sun 6:00pm IST) are interior; PM-698 is due today (Thu). Count = 3."
     },
     {
       "id": "pm-10",
       "title": "updated-three-days-ago",
-      "context": { "now": "2026-07-24T09:00:00-04:00", "timeZone": "America/New_York", "locale": "en-US" },
+      "context": {
+        "now": "2026-07-24T09:00:00-04:00",
+        "timeZone": "America/New_York",
+        "locale": "en-US"
+      },
       "user": "Show me what was updated three days ago.",
       "mocks": {
         "search_issues": {
           "rows": [
-            { "id": "PM-801", "name": "Feature flag cleanup", "status": "done", "updated_utc": "2026-07-21T14:30:00Z" },
-            { "id": "PM-806", "name": "Retry budget config", "status": "in_review", "updated_utc": "2026-07-21T20:10:00Z" },
-            { "id": "PM-797", "name": "Alerting runbook", "status": "done", "updated_utc": "2026-07-20T18:00:00Z" },
-            { "id": "PM-810", "name": "Canary rollout plan", "status": "in_progress", "updated_utc": "2026-07-22T15:00:00Z" }
+            {
+              "id": "PM-801",
+              "name": "Feature flag cleanup",
+              "status": "done",
+              "updated_utc": "2026-07-21T14:30:00Z"
+            },
+            {
+              "id": "PM-806",
+              "name": "Retry budget config",
+              "status": "in_review",
+              "updated_utc": "2026-07-21T20:10:00Z"
+            },
+            {
+              "id": "PM-797",
+              "name": "Alerting runbook",
+              "status": "done",
+              "updated_utc": "2026-07-20T18:00:00Z"
+            },
+            {
+              "id": "PM-810",
+              "name": "Canary rollout plan",
+              "status": "in_progress",
+              "updated_utc": "2026-07-22T15:00:00Z"
+            }
           ]
         }
       },
@@ -365,17 +848,41 @@
         "toolCalls": [
           {
             "tool": "search_issues",
-            "graded": ["updated_after", "updated_before"],
-            "argKinds": { "updated_after": "instant-start", "updated_before": "instant-end" },
-            "admissible": [
-              { "updated_after": "2026-07-21T04:00:00Z", "updated_before": "2026-07-22T04:00:00Z" }
+            "graded": [
+              "updated_after",
+              "updated_before"
             ],
-            "verifyPhrase": { "phrase": "three days ago" }
+            "argKinds": {
+              "updated_after": "instant-start",
+              "updated_before": "instant-end"
+            },
+            "admissible": [
+              {
+                "updated_after": "2026-07-21T04:00:00Z",
+                "updated_before": "2026-07-22T04:00:00Z"
+              }
+            ],
+            "verifyPhrase": {
+              "phrase": "three days ago"
+            }
           }
         ],
-        "response": { "checks": [ { "kind": "count", "expected": 2, "unit": "issues?|tickets?|items?", "note": "PM-801 and PM-806 on Tue Jul 21; PM-797 is Monday, PM-810 Wednesday" } ] }
+        "response": {
+          "checks": [
+            {
+              "kind": "count",
+              "expected": 2,
+              "unit": "issues?|tickets?|items?",
+              "note": "PM-801 and PM-806 on Tue Jul 21; PM-797 is Monday, PM-810 Wednesday",
+              "itemRegex": "pm-\\d+"
+            }
+          ]
+        }
       },
-      "directions": ["nl2time", "time2nl"],
+      "directions": [
+        "nl2time",
+        "time2nl"
+      ],
       "rationale": "Trap-free baseline. Now = FRIDAY Jul 24 2026, 9:00am EDT. 'Three days ago' = the civil day Tuesday Jul 21 in New York: [Jul 21 00:00 ET, Jul 22 00:00 ET) = [2026-07-21T04:00Z, 2026-07-22T04:00Z), matching the bridge exactly. In range: PM-801 (Tue 10:30am EDT) and PM-806 (Tue 4:10pm EDT) — count 2. PM-797 (Mon Jul 20, 2:00pm EDT) and PM-810 (Wed Jul 22, 11:00am EDT) sit safely on neighboring days with no cross-midnight ambiguity — UTC and local days agree for every row."
     }
   ]
