@@ -11,6 +11,6 @@
   "license": "ISC",
   "type": "commonjs",
   "dependencies": {
-    "nl2time": "^0.3.0"
+    "nl2time": "^0.3.1"
   }
 }

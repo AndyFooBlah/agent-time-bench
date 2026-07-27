@@ -6,9 +6,24 @@
       "name": "search_trips",
       "description": "Search the user's booked flight segments. Returns segments whose scheduled departure falls in [start_utc, end_utc). Both bounds are required and must be UTC ISO 8601 strings (e.g. 2026-08-01T04:00:00Z); start is inclusive, end is exclusive.",
       "params": [
-        { "name": "query", "type": "string", "description": "Free-text airline/airport filter (optional; empty returns all segments in range)", "required": false },
-        { "name": "start_utc", "type": "string", "description": "Range start, UTC ISO 8601, inclusive", "required": true },
-        { "name": "end_utc", "type": "string", "description": "Range end, UTC ISO 8601, exclusive", "required": true }
+        {
+          "name": "query",
+          "type": "string",
+          "description": "Free-text airline/airport filter (optional; empty returns all segments in range)",
+          "required": false
+        },
+        {
+          "name": "start_utc",
+          "type": "string",
+          "description": "Range start, UTC ISO 8601, inclusive",
+          "required": true
+        },
+        {
+          "name": "end_utc",
+          "type": "string",
+          "description": "Range end, UTC ISO 8601, exclusive",
+          "required": true
+        }
       ],
       "mock": {
         "kind": "filter-rows",
@@ -22,47 +37,116 @@
       "name": "get_flight_status",
       "description": "Look up a specific flight by flight number. Returns scheduled departure and arrival as UTC instants (depart_utc, arrive_utc) plus the departure/arrival airports and their IANA time zones (depart_tz, arrive_tz).",
       "params": [
-        { "name": "flight", "type": "string", "description": "Flight number, e.g. DL423", "required": true }
+        {
+          "name": "flight",
+          "type": "string",
+          "description": "Flight number, e.g. DL423",
+          "required": true
+        }
       ],
-      "mock": { "kind": "static" }
+      "mock": {
+        "kind": "static"
+      }
     },
     {
       "name": "get_next_trip",
       "description": "Return the user's next upcoming booked flight segment (soonest scheduled departure after now), with UTC departure/arrival instants, airports, and their IANA time zones.",
       "params": [],
-      "mock": { "kind": "static" }
+      "mock": {
+        "kind": "static"
+      }
     }
   ],
   "scenarios": [
     {
       "id": "trv-01",
       "title": "thursday-departure-airport-clock",
-      "context": { "now": "2026-07-28T09:10:00-04:00", "timeZone": "America/New_York", "locale": "en-US" },
+      "context": {
+        "now": "2026-07-28T09:10:00-04:00",
+        "timeZone": "America/New_York",
+        "locale": "en-US"
+      },
       "user": "What time does my flight leave on Thursday?",
       "mocks": {
         "search_trips": {
           "rows": [
-            { "name": "AA181 JFK-LAX", "flight": "AA181", "depart_airport": "JFK", "depart_tz": "America/New_York", "arrive_airport": "LAX", "arrive_tz": "America/Los_Angeles", "depart_utc": "2026-07-28T14:05:00Z", "arrive_utc": "2026-07-28T20:25:00Z" },
-            { "name": "DL423 LAX-JFK", "flight": "DL423", "depart_airport": "LAX", "depart_tz": "America/Los_Angeles", "arrive_airport": "JFK", "arrive_tz": "America/New_York", "depart_utc": "2026-07-30T20:15:00Z", "arrive_utc": "2026-07-31T01:40:00Z" },
-            { "name": "B6801 JFK-MIA", "flight": "B6801", "depart_airport": "JFK", "depart_tz": "America/New_York", "arrive_airport": "MIA", "arrive_tz": "America/New_York", "depart_utc": "2026-08-08T13:30:00Z", "arrive_utc": "2026-08-08T16:45:00Z" }
+            {
+              "name": "AA181 JFK-LAX",
+              "flight": "AA181",
+              "depart_airport": "JFK",
+              "depart_tz": "America/New_York",
+              "arrive_airport": "LAX",
+              "arrive_tz": "America/Los_Angeles",
+              "depart_utc": "2026-07-28T14:05:00Z",
+              "arrive_utc": "2026-07-28T20:25:00Z"
+            },
+            {
+              "name": "DL423 LAX-JFK",
+              "flight": "DL423",
+              "depart_airport": "LAX",
+              "depart_tz": "America/Los_Angeles",
+              "arrive_airport": "JFK",
+              "arrive_tz": "America/New_York",
+              "depart_utc": "2026-07-30T20:15:00Z",
+              "arrive_utc": "2026-07-31T01:40:00Z"
+            },
+            {
+              "name": "B6801 JFK-MIA",
+              "flight": "B6801",
+              "depart_airport": "JFK",
+              "depart_tz": "America/New_York",
+              "arrive_airport": "MIA",
+              "arrive_tz": "America/New_York",
+              "depart_utc": "2026-08-08T13:30:00Z",
+              "arrive_utc": "2026-08-08T16:45:00Z"
+            }
           ]
         },
         "get_flight_status": {
-          "response": { "flight": "DL423", "status": "On time", "depart_utc": "2026-07-30T20:15:00Z", "depart_airport": "LAX", "depart_tz": "America/Los_Angeles", "arrive_utc": "2026-07-31T01:40:00Z", "arrive_airport": "JFK", "arrive_tz": "America/New_York" }
+          "response": {
+            "flight": "DL423",
+            "status": "On time",
+            "depart_utc": "2026-07-30T20:15:00Z",
+            "depart_airport": "LAX",
+            "depart_tz": "America/Los_Angeles",
+            "arrive_utc": "2026-07-31T01:40:00Z",
+            "arrive_airport": "JFK",
+            "arrive_tz": "America/New_York"
+          }
         },
         "get_next_trip": {
-          "response": { "flight": "AA181", "depart_utc": "2026-07-28T14:05:00Z", "depart_airport": "JFK", "depart_tz": "America/New_York", "arrive_utc": "2026-07-28T20:25:00Z", "arrive_airport": "LAX", "arrive_tz": "America/Los_Angeles" }
+          "response": {
+            "flight": "AA181",
+            "depart_utc": "2026-07-28T14:05:00Z",
+            "depart_airport": "JFK",
+            "depart_tz": "America/New_York",
+            "arrive_utc": "2026-07-28T20:25:00Z",
+            "arrive_airport": "LAX",
+            "arrive_tz": "America/Los_Angeles"
+          }
         }
       },
       "expect": {
         "toolCalls": [
           {
             "tool": "search_trips",
-            "graded": ["start_utc", "end_utc"],
-            "argKinds": { "start_utc": "instant-start", "end_utc": "instant-end" },
+            "graded": [
+              "start_utc",
+              "end_utc"
+            ],
+            "argKinds": {
+              "start_utc": "instant-start",
+              "end_utc": "instant-end"
+            },
             "admissible": [
-              { "start_utc": "2026-07-30T04:00:00Z", "end_utc": "2026-07-31T04:00:00Z" },
-              { "start_utc": "2026-07-30T07:00:00Z", "end_utc": "2026-07-31T07:00:00Z" }
+              {
+                "start_utc": "2026-07-30T04:00:00Z",
+                "end_utc": "2026-07-31T04:00:00Z"
+              },
+              {
+                "start_utc": "2026-07-30T07:00:00Z",
+                "end_utc": "2026-07-31T07:00:00Z"
+              }
             ],
             "verifyPhrase": {
               "phrase": "on Thursday",
@@ -72,320 +156,905 @@
         ],
         "response": {
           "checks": [
-            { "kind": "clockTime", "instant": "2026-07-30T20:15:00Z", "tz": "America/Los_Angeles", "rejectUtcClock": true, "note": "Departure is from LAX: 1:15pm PDT. 8:15pm/20:15 is the UTC rendering" },
-            { "kind": "regex", "reject": "\\b4:15\\b", "note": "4:15pm is the user's home-zone (ET) rendering of the LAX departure — also wrong; the answer must be in the departure airport's zone" }
+            {
+              "kind": "clockTime",
+              "instant": "2026-07-30T20:15:00Z",
+              "tz": "America/Los_Angeles",
+              "rejectUtcClock": true,
+              "note": "Departure is from LAX: 1:15pm PDT. 8:15pm/20:15 is the UTC rendering"
+            },
+            {
+              "kind": "regex",
+              "reject": "\\b4:15\\b",
+              "note": "4:15pm is the user's home-zone (ET) rendering of the LAX departure — also wrong; the answer must be in the departure airport's zone"
+            }
           ]
         }
       },
-      "directions": ["nl2time", "time2nl"],
+      "directions": [
+        "nl2time",
+        "time2nl"
+      ],
       "rationale": "Now = TUESDAY Jul 28 2026, 9:10am EDT (UTC-4). 'Thursday' = upcoming Thu Jul 30. The user sits in New York but the Thursday flight departs LAX, so both day readings are admitted: NY civil Thursday [Jul 30 00:00 ET, Jul 31 00:00 ET) = [2026-07-30T04:00Z, 2026-07-31T04:00Z) and LAX civil Thursday [Jul 30 00:00 PT, Jul 31 00:00 PT) = [2026-07-30T07:00Z, 2026-07-31T07:00Z). DL423 departs 2026-07-30T20:15Z = Thu 1:15pm PDT = Thu 4:15pm EDT — inside both windows (count 1 under each); AA181 (Tue Jul 28 14:05Z) and B6801 (Sat Aug 8 13:30Z) are outside both. The answer clock must be airport-local: 1:15pm PDT; 4:15pm (ET) and 8:15pm/20:15 (UTC) are the traps. get_next_trip is consistently the Tue Jul 28 flight (14:05Z > now 13:10Z), so it cannot short-circuit the Thursday search."
     },
     {
       "id": "trv-02",
       "title": "evening-flight-lands-la-before-midnight",
-      "context": { "now": "2026-08-05T09:00:00-04:00", "timeZone": "America/New_York", "locale": "en-US" },
+      "context": {
+        "now": "2026-08-05T09:00:00-04:00",
+        "timeZone": "America/New_York",
+        "locale": "en-US"
+      },
       "user": "I'm flying to LA tomorrow evening. What time do I actually land there, and on what date?",
       "mocks": {
         "get_next_trip": {
-          "response": { "flight": "B6623", "depart_utc": "2026-08-07T00:30:00Z", "depart_airport": "JFK", "depart_tz": "America/New_York", "arrive_utc": "2026-08-07T06:40:00Z", "arrive_airport": "LAX", "arrive_tz": "America/Los_Angeles" }
+          "response": {
+            "flight": "B6623",
+            "depart_utc": "2026-08-07T00:30:00Z",
+            "depart_airport": "JFK",
+            "depart_tz": "America/New_York",
+            "arrive_utc": "2026-08-07T06:40:00Z",
+            "arrive_airport": "LAX",
+            "arrive_tz": "America/Los_Angeles"
+          }
         },
         "get_flight_status": {
-          "response": { "flight": "B6623", "status": "On time", "depart_utc": "2026-08-07T00:30:00Z", "depart_airport": "JFK", "depart_tz": "America/New_York", "arrive_utc": "2026-08-07T06:40:00Z", "arrive_airport": "LAX", "arrive_tz": "America/Los_Angeles" }
+          "response": {
+            "flight": "B6623",
+            "status": "On time",
+            "depart_utc": "2026-08-07T00:30:00Z",
+            "depart_airport": "JFK",
+            "depart_tz": "America/New_York",
+            "arrive_utc": "2026-08-07T06:40:00Z",
+            "arrive_airport": "LAX",
+            "arrive_tz": "America/Los_Angeles"
+          }
         },
         "search_trips": {
           "rows": [
-            { "name": "B6623 JFK-LAX", "flight": "B6623", "depart_airport": "JFK", "depart_tz": "America/New_York", "arrive_airport": "LAX", "arrive_tz": "America/Los_Angeles", "depart_utc": "2026-08-07T00:30:00Z", "arrive_utc": "2026-08-07T06:40:00Z" },
-            { "name": "B6624 LAX-JFK", "flight": "B6624", "depart_airport": "LAX", "depart_tz": "America/Los_Angeles", "arrive_airport": "JFK", "arrive_tz": "America/New_York", "depart_utc": "2026-08-09T15:20:00Z", "arrive_utc": "2026-08-09T23:45:00Z" }
+            {
+              "name": "B6623 JFK-LAX",
+              "flight": "B6623",
+              "depart_airport": "JFK",
+              "depart_tz": "America/New_York",
+              "arrive_airport": "LAX",
+              "arrive_tz": "America/Los_Angeles",
+              "depart_utc": "2026-08-07T00:30:00Z",
+              "arrive_utc": "2026-08-07T06:40:00Z"
+            },
+            {
+              "name": "B6624 LAX-JFK",
+              "flight": "B6624",
+              "depart_airport": "LAX",
+              "depart_tz": "America/Los_Angeles",
+              "arrive_airport": "JFK",
+              "arrive_tz": "America/New_York",
+              "depart_utc": "2026-08-09T15:20:00Z",
+              "arrive_utc": "2026-08-09T23:45:00Z"
+            }
           ]
         }
       },
       "expect": {
         "response": {
           "checks": [
-            { "kind": "civilDay", "instant": "2026-08-07T06:40:00Z", "tz": "America/Los_Angeles", "rejectUtcDay": true, "note": "Lands 11:40pm PDT on Thursday Aug 6; the UTC timestamp reads Aug 7" },
-            { "kind": "clockTime", "instant": "2026-08-07T06:40:00Z", "tz": "America/Los_Angeles", "rejectUtcClock": true, "note": "11:40pm LAX-local, not 6:40" },
-            { "kind": "regex", "reject": "\\b2:40\\b", "note": "2:40am Aug 7 is the home-zone (ET) rendering of the landing — wrong clock and wrong date for an LAX arrival" }
+            {
+              "kind": "civilDay",
+              "instant": "2026-08-07T06:40:00Z",
+              "tz": "America/Los_Angeles",
+              "rejectUtcDay": true,
+              "note": "Lands 11:40pm PDT on Thursday Aug 6; the UTC timestamp reads Aug 7"
+            },
+            {
+              "kind": "clockTime",
+              "instant": "2026-08-07T06:40:00Z",
+              "tz": "America/Los_Angeles",
+              "rejectUtcClock": true,
+              "note": "11:40pm LAX-local, not 6:40"
+            },
+            {
+              "kind": "regex",
+              "reject": "\\b2:40\\b",
+              "note": "2:40am Aug 7 is the home-zone (ET) rendering of the landing — wrong clock and wrong date for an LAX arrival"
+            }
           ]
         }
       },
-      "directions": ["time2nl"],
+      "directions": [
+        "time2nl"
+      ],
       "rationale": "Pure time->NL. Now = Wednesday Aug 5 2026, 9:00am EDT. Tomorrow-evening flight B6623 departs JFK 2026-08-07T00:30Z = Thu Aug 6 8:30pm EDT and lands LAX 2026-08-07T06:40Z = Thu Aug 6 11:40pm PDT. Arrival-airport-local day is Aug 6 while the UTC day is Aug 7 (rejectUtcDay real) and the UTC clock 6:40 differs from local 11:40pm (rejectUtcClock real); the ET rendering 2:40am Fri Aug 7 is separately rejected by regex. search_trips rows are consistent (the same segment plus the Aug 9 return), so an agent that searches tomorrow's bounds finds the same flight."
     },
     {
       "id": "trv-03",
       "title": "flight-count-this-august",
-      "context": { "now": "2026-07-31T18:40:00-04:00", "timeZone": "America/New_York", "locale": "en-US" },
+      "context": {
+        "now": "2026-07-31T18:40:00-04:00",
+        "timeZone": "America/New_York",
+        "locale": "en-US"
+      },
       "user": "How many flights do I have this August?",
       "mocks": {
         "search_trips": {
           "rows": [
-            { "name": "UA1042 EWR-ORD", "flight": "UA1042", "depart_airport": "EWR", "depart_tz": "America/New_York", "arrive_airport": "ORD", "arrive_tz": "America/Chicago", "depart_utc": "2026-08-01T03:15:00Z", "arrive_utc": "2026-08-01T05:40:00Z" },
-            { "name": "DL1500 ORD-ATL", "flight": "DL1500", "depart_airport": "ORD", "depart_tz": "America/Chicago", "arrive_airport": "ATL", "arrive_tz": "America/New_York", "depart_utc": "2026-08-08T15:30:00Z", "arrive_utc": "2026-08-08T18:20:00Z" },
-            { "name": "DL2211 ATL-JFK", "flight": "DL2211", "depart_airport": "ATL", "depart_tz": "America/New_York", "arrive_airport": "JFK", "arrive_tz": "America/New_York", "depart_utc": "2026-08-15T12:10:00Z", "arrive_utc": "2026-08-15T14:30:00Z" },
-            { "name": "AA700 JFK-AUS", "flight": "AA700", "depart_airport": "JFK", "depart_tz": "America/New_York", "arrive_airport": "AUS", "arrive_tz": "America/Chicago", "depart_utc": "2026-08-22T14:05:00Z", "arrive_utc": "2026-08-22T18:10:00Z" },
-            { "name": "B6210 JFK-BOS", "flight": "B6210", "depart_airport": "JFK", "depart_tz": "America/New_York", "arrive_airport": "BOS", "arrive_tz": "America/New_York", "depart_utc": "2026-09-03T12:00:00Z", "arrive_utc": "2026-09-03T13:15:00Z" }
+            {
+              "name": "UA1042 EWR-ORD",
+              "flight": "UA1042",
+              "depart_airport": "EWR",
+              "depart_tz": "America/New_York",
+              "arrive_airport": "ORD",
+              "arrive_tz": "America/Chicago",
+              "depart_utc": "2026-08-01T03:15:00Z",
+              "arrive_utc": "2026-08-01T05:40:00Z"
+            },
+            {
+              "name": "DL1500 ORD-ATL",
+              "flight": "DL1500",
+              "depart_airport": "ORD",
+              "depart_tz": "America/Chicago",
+              "arrive_airport": "ATL",
+              "arrive_tz": "America/New_York",
+              "depart_utc": "2026-08-08T15:30:00Z",
+              "arrive_utc": "2026-08-08T18:20:00Z"
+            },
+            {
+              "name": "DL2211 ATL-JFK",
+              "flight": "DL2211",
+              "depart_airport": "ATL",
+              "depart_tz": "America/New_York",
+              "arrive_airport": "JFK",
+              "arrive_tz": "America/New_York",
+              "depart_utc": "2026-08-15T12:10:00Z",
+              "arrive_utc": "2026-08-15T14:30:00Z"
+            },
+            {
+              "name": "AA700 JFK-AUS",
+              "flight": "AA700",
+              "depart_airport": "JFK",
+              "depart_tz": "America/New_York",
+              "arrive_airport": "AUS",
+              "arrive_tz": "America/Chicago",
+              "depart_utc": "2026-08-22T14:05:00Z",
+              "arrive_utc": "2026-08-22T18:10:00Z"
+            },
+            {
+              "name": "B6210 JFK-BOS",
+              "flight": "B6210",
+              "depart_airport": "JFK",
+              "depart_tz": "America/New_York",
+              "arrive_airport": "BOS",
+              "arrive_tz": "America/New_York",
+              "depart_utc": "2026-09-03T12:00:00Z",
+              "arrive_utc": "2026-09-03T13:15:00Z"
+            }
           ]
         },
         "get_next_trip": {
-          "response": { "flight": "UA1042", "depart_utc": "2026-08-01T03:15:00Z", "depart_airport": "EWR", "depart_tz": "America/New_York", "arrive_utc": "2026-08-01T05:40:00Z", "arrive_airport": "ORD", "arrive_tz": "America/Chicago" }
-        }
-      },
-      "expect": {
-        "toolCalls": [
-          {
-            "tool": "search_trips",
-            "graded": ["start_utc", "end_utc"],
-            "argKinds": { "start_utc": "instant-start", "end_utc": "instant-end" },
-            "admissible": [
-              { "start_utc": "2026-08-01T04:00:00Z", "end_utc": "2026-09-01T04:00:00Z" }
-            ],
-            "verifyPhrase": { "phrase": "this August" }
+          "response": {
+            "flight": "UA1042",
+            "depart_utc": "2026-08-01T03:15:00Z",
+            "depart_airport": "EWR",
+            "depart_tz": "America/New_York",
+            "arrive_utc": "2026-08-01T05:40:00Z",
+            "arrive_airport": "ORD",
+            "arrive_tz": "America/Chicago"
           }
-        ],
-        "response": {
-          "checks": [
-            { "kind": "count", "expected": 3, "unit": "flights?|trips?|segments?", "note": "Aug 8, Aug 15, Aug 22 departures; tonight's UA1042 is July 31 local despite its Aug 1 UTC stamp" }
-          ]
-        }
-      },
-      "directions": ["nl2time", "time2nl"],
-      "rationale": "Now = FRIDAY Jul 31 2026, 6:40pm EDT (UTC-4) — deliberately hours before the month boundary. 'This August' = civil August in the user's zone: [Aug 1 00:00 ET, Sep 1 00:00 ET) = [2026-08-01T04:00Z, 2026-09-01T04:00Z). Trap row: UA1042 departs tonight 2026-08-01T03:15Z = Fri Jul 31 11:15pm EDT — a July flight despite its August UTC day; naive UTC-month bounds [Aug 1 00:00Z, Sep 1 00:00Z) wrongly include it and yield 4. In range: DL1500 (Sat Aug 8 11:30am ET), DL2211 (Sat Aug 15 8:10am ET), AA700 (Sat Aug 22 10:05am ET) = 3. B6210 (Sep 3) is out. get_next_trip is consistently UA1042 (departs 03:15Z tonight, after now 22:40Z) and cannot answer a count."
-    },
-    {
-      "id": "trv-04",
-      "title": "flights-next-month-india",
-      "context": { "now": "2026-07-15T11:20:00+05:30", "timeZone": "Asia/Kolkata", "locale": "en-IN" },
-      "user": "How many flights do I have next month?",
-      "mocks": {
-        "search_trips": {
-          "rows": [
-            { "name": "AI501 BLR-DEL", "flight": "AI501", "depart_airport": "BLR", "depart_tz": "Asia/Kolkata", "arrive_airport": "DEL", "arrive_tz": "Asia/Kolkata", "depart_utc": "2026-07-20T06:00:00Z", "arrive_utc": "2026-07-20T08:50:00Z" },
-            { "name": "6E2114 DEL-BLR", "flight": "6E2114", "depart_airport": "DEL", "depart_tz": "Asia/Kolkata", "arrive_airport": "BLR", "arrive_tz": "Asia/Kolkata", "depart_utc": "2026-07-31T19:00:00Z", "arrive_utc": "2026-07-31T21:45:00Z" },
-            { "name": "AI803 BLR-BOM", "flight": "AI803", "depart_airport": "BLR", "depart_tz": "Asia/Kolkata", "arrive_airport": "BOM", "arrive_tz": "Asia/Kolkata", "depart_utc": "2026-08-10T04:15:00Z", "arrive_utc": "2026-08-10T06:10:00Z" },
-            { "name": "6E5301 BOM-BLR", "flight": "6E5301", "depart_airport": "BOM", "depart_tz": "Asia/Kolkata", "arrive_airport": "BLR", "arrive_tz": "Asia/Kolkata", "depart_utc": "2026-08-25T13:40:00Z", "arrive_utc": "2026-08-25T15:25:00Z" },
-            { "name": "6E992 BLR-DEL", "flight": "6E992", "depart_airport": "BLR", "depart_tz": "Asia/Kolkata", "arrive_airport": "DEL", "arrive_tz": "Asia/Kolkata", "depart_utc": "2026-09-02T05:00:00Z", "arrive_utc": "2026-09-02T07:45:00Z" }
-          ]
-        },
-        "get_next_trip": {
-          "response": { "flight": "AI501", "depart_utc": "2026-07-20T06:00:00Z", "depart_airport": "BLR", "depart_tz": "Asia/Kolkata", "arrive_utc": "2026-07-20T08:50:00Z", "arrive_airport": "DEL", "arrive_tz": "Asia/Kolkata" }
         }
       },
       "expect": {
         "toolCalls": [
           {
             "tool": "search_trips",
-            "graded": ["start_utc", "end_utc"],
-            "argKinds": { "start_utc": "instant-start", "end_utc": "instant-end" },
-            "admissible": [
-              { "start_utc": "2026-07-31T18:30:00Z", "end_utc": "2026-08-31T18:30:00Z" }
+            "graded": [
+              "start_utc",
+              "end_utc"
             ],
-            "verifyPhrase": { "phrase": "next month" }
-          }
-        ],
-        "response": {
-          "checks": [
-            { "kind": "count", "expected": 3, "unit": "flights?|trips?", "note": "6E2114 (12:30am Aug 1 IST), AI803, 6E5301; naive UTC-August bounds drop 6E2114 and give 2" }
-          ]
-        }
-      },
-      "directions": ["nl2time", "time2nl"],
-      "rationale": "Now = WEDNESDAY Jul 15 2026, 11:20am IST (UTC+5:30 — non-integer-hour offset). 'Next month' = civil August in Asia/Kolkata: [Aug 1 00:00 IST, Sep 1 00:00 IST) = [2026-07-31T18:30Z, 2026-08-31T18:30Z) — the half-hour offset puts both bounds at :30 past the UTC hour. Trap row: 6E2114 departs 2026-07-31T19:00Z = Sat Aug 1 12:30am IST — inside IST-August but on UTC day Jul 31, so naive UTC-month bounds [Aug 1 00:00Z, Sep 1 00:00Z) exclude it (count 2, wrong). In range: 6E2114, AI803 (Mon Aug 10 9:45am IST), 6E5301 (Tue Aug 25 7:10pm IST) = 3. Out: AI501 (Mon Jul 20, this month), 6E992 (Wed Sep 2). get_next_trip is consistently AI501 (Jul 20 11:30am IST, after now)."
-    },
-    {
-      "id": "trv-05",
-      "title": "when-do-i-land-in-tokyo",
-      "context": { "now": "2026-08-03T09:00:00-07:00", "timeZone": "America/Los_Angeles", "locale": "en-US" },
-      "user": "When do I land in Tokyo — what will the local date and time be there?",
-      "mocks": {
-        "get_next_trip": {
-          "response": { "flight": "NH105", "depart_utc": "2026-08-04T17:50:00Z", "depart_airport": "LAX", "depart_tz": "America/Los_Angeles", "arrive_utc": "2026-08-05T05:45:00Z", "arrive_airport": "HND", "arrive_tz": "Asia/Tokyo" }
-        },
-        "get_flight_status": {
-          "response": { "flight": "NH105", "status": "On time", "depart_utc": "2026-08-04T17:50:00Z", "depart_airport": "LAX", "depart_tz": "America/Los_Angeles", "arrive_utc": "2026-08-05T05:45:00Z", "arrive_airport": "HND", "arrive_tz": "Asia/Tokyo" }
-        },
-        "search_trips": {
-          "rows": [
-            { "name": "NH105 LAX-HND", "flight": "NH105", "depart_airport": "LAX", "depart_tz": "America/Los_Angeles", "arrive_airport": "HND", "arrive_tz": "Asia/Tokyo", "depart_utc": "2026-08-04T17:50:00Z", "arrive_utc": "2026-08-05T05:45:00Z" },
-            { "name": "NH106 HND-LAX", "flight": "NH106", "depart_airport": "HND", "depart_tz": "Asia/Tokyo", "arrive_airport": "LAX", "arrive_tz": "America/Los_Angeles", "depart_utc": "2026-08-12T22:55:00Z", "arrive_utc": "2026-08-13T08:40:00Z" }
-          ]
-        }
-      },
-      "expect": {
-        "response": {
-          "checks": [
-            { "kind": "civilDay", "instant": "2026-08-05T05:45:00Z", "tz": "Asia/Tokyo", "note": "Lands Wednesday Aug 5 Tokyo time (UTC day happens to agree, so no rejectUtcDay; the wrong-day trap is the PDT rendering, Aug 4)" },
-            { "kind": "clockTime", "instant": "2026-08-05T05:45:00Z", "tz": "Asia/Tokyo", "rejectUtcClock": true, "note": "2:45pm JST, not 5:45" },
-            { "kind": "regex", "reject": "10:45\\s*p", "note": "10:45pm (Tue Aug 4) is the user's home-zone PDT rendering of the landing instant — the answer must be Tokyo-local" }
-          ]
-        }
-      },
-      "directions": ["time2nl"],
-      "rationale": "Pure time->NL, cross-zone rendering into Asia/Tokyo (+09:00). Now = Monday Aug 3 2026, 9:00am PDT. NH105 departs LAX 2026-08-04T17:50Z = Tue Aug 4 10:50am PDT and lands HND 2026-08-05T05:45Z = WEDNESDAY Aug 5 2:45pm JST (11h55m flight). The UTC day (Aug 5) coincides with the JST day, so no rejectUtcDay; the traps are the UTC clock (5:45 vs 2:45pm, rejectUtcClock) and the home-zone PDT rendering Tue Aug 4 10:45pm, rejected by regex (the distinct departure time 10:50am cannot collide with the 10:45pm pattern). search_trips and get_flight_status are mocked consistently with the same segment."
-    },
-    {
-      "id": "trv-06",
-      "title": "flight-count-first-half-of-year",
-      "context": { "now": "2026-07-21T09:05:00-04:00", "timeZone": "America/New_York", "locale": "en-US" },
-      "user": "How many flights did I take in the first half of the year?",
-      "mocks": {
-        "search_trips": {
-          "rows": [
-            { "name": "DL419 JFK-SFO", "flight": "DL419", "depart_airport": "JFK", "depart_tz": "America/New_York", "arrive_airport": "SFO", "arrive_tz": "America/Los_Angeles", "depart_utc": "2026-01-01T02:00:00Z", "arrive_utc": "2026-01-01T08:25:00Z" },
-            { "name": "AA1121 SFO-JFK", "flight": "AA1121", "depart_airport": "SFO", "depart_tz": "America/Los_Angeles", "arrive_airport": "JFK", "arrive_tz": "America/New_York", "depart_utc": "2026-01-20T13:45:00Z", "arrive_utc": "2026-01-20T19:10:00Z" },
-            { "name": "UA332 JFK-ORD", "flight": "UA332", "depart_airport": "JFK", "depart_tz": "America/New_York", "arrive_airport": "ORD", "arrive_tz": "America/Chicago", "depart_utc": "2026-02-14T15:20:00Z", "arrive_utc": "2026-02-14T17:45:00Z" },
-            { "name": "UA333 ORD-JFK", "flight": "UA333", "depart_airport": "ORD", "depart_tz": "America/Chicago", "arrive_airport": "JFK", "arrive_tz": "America/New_York", "depart_utc": "2026-04-03T12:30:00Z", "arrive_utc": "2026-04-03T15:40:00Z" },
-            { "name": "B6917 JFK-BOS", "flight": "B6917", "depart_airport": "JFK", "depart_tz": "America/New_York", "arrive_airport": "BOS", "arrive_tz": "America/New_York", "depart_utc": "2026-05-29T21:10:00Z", "arrive_utc": "2026-05-29T22:20:00Z" },
-            { "name": "AA212 BOS-JFK", "flight": "AA212", "depart_airport": "BOS", "depart_tz": "America/New_York", "arrive_airport": "JFK", "arrive_tz": "America/New_York", "depart_utc": "2026-07-06T14:00:00Z", "arrive_utc": "2026-07-06T15:10:00Z" },
-            { "name": "DL88 JFK-DEN", "flight": "DL88", "depart_airport": "JFK", "depart_tz": "America/New_York", "arrive_airport": "DEN", "arrive_tz": "America/Denver", "depart_utc": "2026-08-02T14:30:00Z", "arrive_utc": "2026-08-02T19:05:00Z" }
-          ]
-        },
-        "get_next_trip": {
-          "response": { "flight": "DL88", "depart_utc": "2026-08-02T14:30:00Z", "depart_airport": "JFK", "depart_tz": "America/New_York", "arrive_utc": "2026-08-02T19:05:00Z", "arrive_airport": "DEN", "arrive_tz": "America/Denver" }
-        }
-      },
-      "expect": {
-        "toolCalls": [
-          {
-            "tool": "search_trips",
-            "graded": ["start_utc", "end_utc"],
-            "argKinds": { "start_utc": "instant-start", "end_utc": "instant-end" },
+            "argKinds": {
+              "start_utc": "instant-start",
+              "end_utc": "instant-end"
+            },
             "admissible": [
-              { "start_utc": "2026-01-01T05:00:00Z", "end_utc": "2026-07-01T04:00:00Z" }
+              {
+                "start_utc": "2026-08-01T04:00:00Z",
+                "end_utc": "2026-09-01T04:00:00Z"
+              }
             ],
             "verifyPhrase": {
-              "phrase": "the first half of the year",
-              "disagreementNote": "nl2time drops the 'first half of' qualifier and resolves the phrase to the whole year [2026-01-01T05:00Z .. 2027-01-01T05:00Z); the goldens encode Jan 1 - Jul 1"
+              "phrase": "this August"
             }
           }
         ],
         "response": {
           "checks": [
-            { "kind": "count", "expected": 4, "unit": "flights?|trips?|times?", "note": "Jan 20, Feb 14, Apr 3, May 29; the Jan 1 02:00Z row is New Year's Eve 2025 local and must not count" }
+            {
+              "kind": "count",
+              "expected": 3,
+              "unit": "flights?|trips?|segments?",
+              "note": "Aug 8, Aug 15, Aug 22 departures; tonight's UA1042 is July 31 local despite its Aug 1 UTC stamp"
+            }
           ]
         }
       },
-      "directions": ["nl2time", "time2nl"],
+      "directions": [
+        "nl2time",
+        "time2nl"
+      ],
+      "rationale": "Now = FRIDAY Jul 31 2026, 6:40pm EDT (UTC-4) — deliberately hours before the month boundary. 'This August' = civil August in the user's zone: [Aug 1 00:00 ET, Sep 1 00:00 ET) = [2026-08-01T04:00Z, 2026-09-01T04:00Z). Trap row: UA1042 departs tonight 2026-08-01T03:15Z = Fri Jul 31 11:15pm EDT — a July flight despite its August UTC day; naive UTC-month bounds [Aug 1 00:00Z, Sep 1 00:00Z) wrongly include it and yield 4. In range: DL1500 (Sat Aug 8 11:30am ET), DL2211 (Sat Aug 15 8:10am ET), AA700 (Sat Aug 22 10:05am ET) = 3. B6210 (Sep 3) is out. get_next_trip is consistently UA1042 (departs 03:15Z tonight, after now 22:40Z) and cannot answer a count."
+    },
+    {
+      "id": "trv-04",
+      "title": "flights-next-month-india",
+      "context": {
+        "now": "2026-07-15T11:20:00+05:30",
+        "timeZone": "Asia/Kolkata",
+        "locale": "en-IN"
+      },
+      "user": "How many flights do I have next month?",
+      "mocks": {
+        "search_trips": {
+          "rows": [
+            {
+              "name": "AI501 BLR-DEL",
+              "flight": "AI501",
+              "depart_airport": "BLR",
+              "depart_tz": "Asia/Kolkata",
+              "arrive_airport": "DEL",
+              "arrive_tz": "Asia/Kolkata",
+              "depart_utc": "2026-07-20T06:00:00Z",
+              "arrive_utc": "2026-07-20T08:50:00Z"
+            },
+            {
+              "name": "6E2114 DEL-BLR",
+              "flight": "6E2114",
+              "depart_airport": "DEL",
+              "depart_tz": "Asia/Kolkata",
+              "arrive_airport": "BLR",
+              "arrive_tz": "Asia/Kolkata",
+              "depart_utc": "2026-07-31T19:00:00Z",
+              "arrive_utc": "2026-07-31T21:45:00Z"
+            },
+            {
+              "name": "AI803 BLR-BOM",
+              "flight": "AI803",
+              "depart_airport": "BLR",
+              "depart_tz": "Asia/Kolkata",
+              "arrive_airport": "BOM",
+              "arrive_tz": "Asia/Kolkata",
+              "depart_utc": "2026-08-10T04:15:00Z",
+              "arrive_utc": "2026-08-10T06:10:00Z"
+            },
+            {
+              "name": "6E5301 BOM-BLR",
+              "flight": "6E5301",
+              "depart_airport": "BOM",
+              "depart_tz": "Asia/Kolkata",
+              "arrive_airport": "BLR",
+              "arrive_tz": "Asia/Kolkata",
+              "depart_utc": "2026-08-25T13:40:00Z",
+              "arrive_utc": "2026-08-25T15:25:00Z"
+            },
+            {
+              "name": "6E992 BLR-DEL",
+              "flight": "6E992",
+              "depart_airport": "BLR",
+              "depart_tz": "Asia/Kolkata",
+              "arrive_airport": "DEL",
+              "arrive_tz": "Asia/Kolkata",
+              "depart_utc": "2026-09-02T05:00:00Z",
+              "arrive_utc": "2026-09-02T07:45:00Z"
+            }
+          ]
+        },
+        "get_next_trip": {
+          "response": {
+            "flight": "AI501",
+            "depart_utc": "2026-07-20T06:00:00Z",
+            "depart_airport": "BLR",
+            "depart_tz": "Asia/Kolkata",
+            "arrive_utc": "2026-07-20T08:50:00Z",
+            "arrive_airport": "DEL",
+            "arrive_tz": "Asia/Kolkata"
+          }
+        }
+      },
+      "expect": {
+        "toolCalls": [
+          {
+            "tool": "search_trips",
+            "graded": [
+              "start_utc",
+              "end_utc"
+            ],
+            "argKinds": {
+              "start_utc": "instant-start",
+              "end_utc": "instant-end"
+            },
+            "admissible": [
+              {
+                "start_utc": "2026-07-31T18:30:00Z",
+                "end_utc": "2026-08-31T18:30:00Z"
+              }
+            ],
+            "verifyPhrase": {
+              "phrase": "next month"
+            }
+          }
+        ],
+        "response": {
+          "checks": [
+            {
+              "kind": "count",
+              "expected": 3,
+              "unit": "flights?|trips?",
+              "note": "6E2114 (12:30am Aug 1 IST), AI803, 6E5301; naive UTC-August bounds drop 6E2114 and give 2"
+            }
+          ]
+        }
+      },
+      "directions": [
+        "nl2time",
+        "time2nl"
+      ],
+      "rationale": "Now = WEDNESDAY Jul 15 2026, 11:20am IST (UTC+5:30 — non-integer-hour offset). 'Next month' = civil August in Asia/Kolkata: [Aug 1 00:00 IST, Sep 1 00:00 IST) = [2026-07-31T18:30Z, 2026-08-31T18:30Z) — the half-hour offset puts both bounds at :30 past the UTC hour. Trap row: 6E2114 departs 2026-07-31T19:00Z = Sat Aug 1 12:30am IST — inside IST-August but on UTC day Jul 31, so naive UTC-month bounds [Aug 1 00:00Z, Sep 1 00:00Z) exclude it (count 2, wrong). In range: 6E2114, AI803 (Mon Aug 10 9:45am IST), 6E5301 (Tue Aug 25 7:10pm IST) = 3. Out: AI501 (Mon Jul 20, this month), 6E992 (Wed Sep 2). get_next_trip is consistently AI501 (Jul 20 11:30am IST, after now)."
+    },
+    {
+      "id": "trv-05",
+      "title": "when-do-i-land-in-tokyo",
+      "context": {
+        "now": "2026-08-03T09:00:00-07:00",
+        "timeZone": "America/Los_Angeles",
+        "locale": "en-US"
+      },
+      "user": "When do I land in Tokyo — what will the local date and time be there?",
+      "mocks": {
+        "get_next_trip": {
+          "response": {
+            "flight": "NH105",
+            "depart_utc": "2026-08-04T17:50:00Z",
+            "depart_airport": "LAX",
+            "depart_tz": "America/Los_Angeles",
+            "arrive_utc": "2026-08-05T05:45:00Z",
+            "arrive_airport": "HND",
+            "arrive_tz": "Asia/Tokyo"
+          }
+        },
+        "get_flight_status": {
+          "response": {
+            "flight": "NH105",
+            "status": "On time",
+            "depart_utc": "2026-08-04T17:50:00Z",
+            "depart_airport": "LAX",
+            "depart_tz": "America/Los_Angeles",
+            "arrive_utc": "2026-08-05T05:45:00Z",
+            "arrive_airport": "HND",
+            "arrive_tz": "Asia/Tokyo"
+          }
+        },
+        "search_trips": {
+          "rows": [
+            {
+              "name": "NH105 LAX-HND",
+              "flight": "NH105",
+              "depart_airport": "LAX",
+              "depart_tz": "America/Los_Angeles",
+              "arrive_airport": "HND",
+              "arrive_tz": "Asia/Tokyo",
+              "depart_utc": "2026-08-04T17:50:00Z",
+              "arrive_utc": "2026-08-05T05:45:00Z"
+            },
+            {
+              "name": "NH106 HND-LAX",
+              "flight": "NH106",
+              "depart_airport": "HND",
+              "depart_tz": "Asia/Tokyo",
+              "arrive_airport": "LAX",
+              "arrive_tz": "America/Los_Angeles",
+              "depart_utc": "2026-08-12T22:55:00Z",
+              "arrive_utc": "2026-08-13T08:40:00Z"
+            }
+          ]
+        }
+      },
+      "expect": {
+        "response": {
+          "checks": [
+            {
+              "kind": "civilDay",
+              "instant": "2026-08-05T05:45:00Z",
+              "tz": "Asia/Tokyo",
+              "note": "Lands Wednesday Aug 5 Tokyo time (UTC day happens to agree, so no rejectUtcDay; the wrong-day trap is the PDT rendering, Aug 4)"
+            },
+            {
+              "kind": "clockTime",
+              "instant": "2026-08-05T05:45:00Z",
+              "tz": "Asia/Tokyo",
+              "rejectUtcClock": true,
+              "note": "2:45pm JST, not 5:45"
+            },
+            {
+              "kind": "regex",
+              "reject": "10:45\\s*p",
+              "note": "10:45pm (Tue Aug 4) is the user's home-zone PDT rendering of the landing instant — the answer must be Tokyo-local"
+            }
+          ]
+        }
+      },
+      "directions": [
+        "time2nl"
+      ],
+      "rationale": "Pure time->NL, cross-zone rendering into Asia/Tokyo (+09:00). Now = Monday Aug 3 2026, 9:00am PDT. NH105 departs LAX 2026-08-04T17:50Z = Tue Aug 4 10:50am PDT and lands HND 2026-08-05T05:45Z = WEDNESDAY Aug 5 2:45pm JST (11h55m flight). The UTC day (Aug 5) coincides with the JST day, so no rejectUtcDay; the traps are the UTC clock (5:45 vs 2:45pm, rejectUtcClock) and the home-zone PDT rendering Tue Aug 4 10:45pm, rejected by regex (the distinct departure time 10:50am cannot collide with the 10:45pm pattern). search_trips and get_flight_status are mocked consistently with the same segment."
+    },
+    {
+      "id": "trv-06",
+      "title": "flight-count-first-half-of-year",
+      "context": {
+        "now": "2026-07-21T09:05:00-04:00",
+        "timeZone": "America/New_York",
+        "locale": "en-US"
+      },
+      "user": "How many flights did I take in the first half of the year?",
+      "mocks": {
+        "search_trips": {
+          "rows": [
+            {
+              "name": "DL419 JFK-SFO",
+              "flight": "DL419",
+              "depart_airport": "JFK",
+              "depart_tz": "America/New_York",
+              "arrive_airport": "SFO",
+              "arrive_tz": "America/Los_Angeles",
+              "depart_utc": "2026-01-01T02:00:00Z",
+              "arrive_utc": "2026-01-01T08:25:00Z"
+            },
+            {
+              "name": "AA1121 SFO-JFK",
+              "flight": "AA1121",
+              "depart_airport": "SFO",
+              "depart_tz": "America/Los_Angeles",
+              "arrive_airport": "JFK",
+              "arrive_tz": "America/New_York",
+              "depart_utc": "2026-01-20T13:45:00Z",
+              "arrive_utc": "2026-01-20T19:10:00Z"
+            },
+            {
+              "name": "UA332 JFK-ORD",
+              "flight": "UA332",
+              "depart_airport": "JFK",
+              "depart_tz": "America/New_York",
+              "arrive_airport": "ORD",
+              "arrive_tz": "America/Chicago",
+              "depart_utc": "2026-02-14T15:20:00Z",
+              "arrive_utc": "2026-02-14T17:45:00Z"
+            },
+            {
+              "name": "UA333 ORD-JFK",
+              "flight": "UA333",
+              "depart_airport": "ORD",
+              "depart_tz": "America/Chicago",
+              "arrive_airport": "JFK",
+              "arrive_tz": "America/New_York",
+              "depart_utc": "2026-04-03T12:30:00Z",
+              "arrive_utc": "2026-04-03T15:40:00Z"
+            },
+            {
+              "name": "B6917 JFK-BOS",
+              "flight": "B6917",
+              "depart_airport": "JFK",
+              "depart_tz": "America/New_York",
+              "arrive_airport": "BOS",
+              "arrive_tz": "America/New_York",
+              "depart_utc": "2026-05-29T21:10:00Z",
+              "arrive_utc": "2026-05-29T22:20:00Z"
+            },
+            {
+              "name": "AA212 BOS-JFK",
+              "flight": "AA212",
+              "depart_airport": "BOS",
+              "depart_tz": "America/New_York",
+              "arrive_airport": "JFK",
+              "arrive_tz": "America/New_York",
+              "depart_utc": "2026-07-06T14:00:00Z",
+              "arrive_utc": "2026-07-06T15:10:00Z"
+            },
+            {
+              "name": "DL88 JFK-DEN",
+              "flight": "DL88",
+              "depart_airport": "JFK",
+              "depart_tz": "America/New_York",
+              "arrive_airport": "DEN",
+              "arrive_tz": "America/Denver",
+              "depart_utc": "2026-08-02T14:30:00Z",
+              "arrive_utc": "2026-08-02T19:05:00Z"
+            }
+          ]
+        },
+        "get_next_trip": {
+          "response": {
+            "flight": "DL88",
+            "depart_utc": "2026-08-02T14:30:00Z",
+            "depart_airport": "JFK",
+            "depart_tz": "America/New_York",
+            "arrive_utc": "2026-08-02T19:05:00Z",
+            "arrive_airport": "DEN",
+            "arrive_tz": "America/Denver"
+          }
+        }
+      },
+      "expect": {
+        "toolCalls": [
+          {
+            "tool": "search_trips",
+            "graded": [
+              "start_utc",
+              "end_utc"
+            ],
+            "argKinds": {
+              "start_utc": "instant-start",
+              "end_utc": "instant-end"
+            },
+            "admissible": [
+              {
+                "start_utc": "2026-01-01T05:00:00Z",
+                "end_utc": "2026-07-01T04:00:00Z"
+              }
+            ],
+            "verifyPhrase": {
+              "phrase": "the first half of the year"
+            }
+          }
+        ],
+        "response": {
+          "checks": [
+            {
+              "kind": "count",
+              "expected": 4,
+              "unit": "flights?|trips?|times?",
+              "note": "Jan 20, Feb 14, Apr 3, May 29; the Jan 1 02:00Z row is New Year's Eve 2025 local and must not count"
+            }
+          ]
+        }
+      },
+      "directions": [
+        "nl2time",
+        "time2nl"
+      ],
       "rationale": "Now = TUESDAY Jul 21 2026, 9:05am EDT. First half of the year = [Jan 1 00:00 ET, Jul 1 00:00 ET). New York is EST (UTC-5) on Jan 1 and EDT (UTC-4) on Jul 1, so the bounds are asymmetric: [2026-01-01T05:00Z, 2026-07-01T04:00Z). Trap row: DL419 departs 2026-01-01T02:00Z = Wed Dec 31 2025 9:00pm EST — a 2025 flight excluded by the correct start (02:00Z < 05:00Z) but wrongly included by naive UTC bounds [Jan 1 00:00Z, ...), which yield 5. In range: AA1121 (Tue Jan 20 8:45am EST), UA332 (Sat Feb 14 10:20am EST), UA333 (Fri Apr 3 8:30am EDT), B6917 (Fri May 29 5:10pm EDT) = 4. Out: AA212 (Mon Jul 6, second half), DL88 (Aug 2, future — also the consistent get_next_trip)."
     },
     {
       "id": "trv-07",
       "title": "airport-arrival-two-hours-early",
-      "context": { "now": "2026-08-13T15:30:00-04:00", "timeZone": "America/New_York", "locale": "en-US" },
+      "context": {
+        "now": "2026-08-13T15:30:00-04:00",
+        "timeZone": "America/New_York",
+        "locale": "en-US"
+      },
       "user": "I like to be at the airport two hours before departure. What time should I get to JFK tonight?",
       "mocks": {
         "get_next_trip": {
-          "response": { "flight": "B61407", "depart_utc": "2026-08-14T01:45:00Z", "depart_airport": "JFK", "depart_tz": "America/New_York", "arrive_utc": "2026-08-14T08:10:00Z", "arrive_airport": "SFO", "arrive_tz": "America/Los_Angeles" }
+          "response": {
+            "flight": "B61407",
+            "depart_utc": "2026-08-14T01:45:00Z",
+            "depart_airport": "JFK",
+            "depart_tz": "America/New_York",
+            "arrive_utc": "2026-08-14T08:10:00Z",
+            "arrive_airport": "SFO",
+            "arrive_tz": "America/Los_Angeles"
+          }
         },
         "get_flight_status": {
-          "response": { "flight": "B61407", "status": "On time", "depart_utc": "2026-08-14T01:45:00Z", "depart_airport": "JFK", "depart_tz": "America/New_York", "arrive_utc": "2026-08-14T08:10:00Z", "arrive_airport": "SFO", "arrive_tz": "America/Los_Angeles" }
+          "response": {
+            "flight": "B61407",
+            "status": "On time",
+            "depart_utc": "2026-08-14T01:45:00Z",
+            "depart_airport": "JFK",
+            "depart_tz": "America/New_York",
+            "arrive_utc": "2026-08-14T08:10:00Z",
+            "arrive_airport": "SFO",
+            "arrive_tz": "America/Los_Angeles"
+          }
         },
         "search_trips": {
           "rows": [
-            { "name": "B61407 JFK-SFO", "flight": "B61407", "depart_airport": "JFK", "depart_tz": "America/New_York", "arrive_airport": "SFO", "arrive_tz": "America/Los_Angeles", "depart_utc": "2026-08-14T01:45:00Z", "arrive_utc": "2026-08-14T08:10:00Z" },
-            { "name": "DL455 SFO-JFK", "flight": "DL455", "depart_airport": "SFO", "depart_tz": "America/Los_Angeles", "arrive_airport": "JFK", "arrive_tz": "America/New_York", "depart_utc": "2026-08-21T16:30:00Z", "arrive_utc": "2026-08-21T21:55:00Z" }
+            {
+              "name": "B61407 JFK-SFO",
+              "flight": "B61407",
+              "depart_airport": "JFK",
+              "depart_tz": "America/New_York",
+              "arrive_airport": "SFO",
+              "arrive_tz": "America/Los_Angeles",
+              "depart_utc": "2026-08-14T01:45:00Z",
+              "arrive_utc": "2026-08-14T08:10:00Z"
+            },
+            {
+              "name": "DL455 SFO-JFK",
+              "flight": "DL455",
+              "depart_airport": "SFO",
+              "depart_tz": "America/Los_Angeles",
+              "arrive_airport": "JFK",
+              "arrive_tz": "America/New_York",
+              "depart_utc": "2026-08-21T16:30:00Z",
+              "arrive_utc": "2026-08-21T21:55:00Z"
+            }
           ]
         }
       },
       "expect": {
         "response": {
           "checks": [
-            { "kind": "regex", "accept": "7:45\\s*p|19:45", "reject": "11:45|23:45", "note": "Departure is 2026-08-14T01:45Z = 9:45pm EDT tonight; two hours before is 7:45pm EDT. 23:45 is the UTC rendering of that instant and 11:45pm the add-instead-of-subtract error; 9:45pm may legitimately appear as the departure time and is not rejected" }
+            {
+              "kind": "regex",
+              "accept": "7:45\\s*p|19:45",
+              "reject": "11:45|23:45",
+              "note": "Departure is 2026-08-14T01:45Z = 9:45pm EDT tonight; two hours before is 7:45pm EDT. 23:45 is the UTC rendering of that instant and 11:45pm the add-instead-of-subtract error; 9:45pm may legitimately appear as the departure time and is not rejected"
+            }
           ]
         }
       },
-      "directions": ["time2nl"],
+      "directions": [
+        "time2nl"
+      ],
       "rationale": "Pure time->NL with fixed-lead arithmetic. Now = THURSDAY Aug 13 2026, 3:30pm EDT. get_next_trip returns B61407 departing JFK 2026-08-14T01:45Z = Thu Aug 13 9:45pm EDT (a UTC-day rollover: UTC says Aug 14). Two hours before departure = 7:45pm EDT. The regex accepts 7:45pm/19:45 and rejects 11:45 and 23:45 (23:45Z is the same instant but a useless rendering for someone catching a cab in New York). search_trips and get_flight_status are mocked consistently."
     },
     {
       "id": "trv-08",
       "title": "flights-this-coming-weekend",
-      "context": { "now": "2026-08-12T08:30:00-06:00", "timeZone": "America/Denver", "locale": "en-US" },
+      "context": {
+        "now": "2026-08-12T08:30:00-06:00",
+        "timeZone": "America/Denver",
+        "locale": "en-US"
+      },
       "user": "Do I have any flights this coming weekend?",
       "mocks": {
         "search_trips": {
           "rows": [
-            { "name": "UA509 ORD-DEN", "flight": "UA509", "depart_airport": "ORD", "depart_tz": "America/Chicago", "arrive_airport": "DEN", "arrive_tz": "America/Denver", "depart_utc": "2026-08-13T18:00:00Z", "arrive_utc": "2026-08-13T20:40:00Z" },
-            { "name": "WN1480 DEN-PHX", "flight": "WN1480", "depart_airport": "DEN", "depart_tz": "America/Denver", "arrive_airport": "PHX", "arrive_tz": "America/Phoenix", "depart_utc": "2026-08-15T16:20:00Z", "arrive_utc": "2026-08-15T18:15:00Z" },
-            { "name": "WN202 PHX-DEN", "flight": "WN202", "depart_airport": "PHX", "depart_tz": "America/Phoenix", "arrive_airport": "DEN", "arrive_tz": "America/Denver", "depart_utc": "2026-08-18T15:00:00Z", "arrive_utc": "2026-08-18T16:50:00Z" }
+            {
+              "name": "UA509 ORD-DEN",
+              "flight": "UA509",
+              "depart_airport": "ORD",
+              "depart_tz": "America/Chicago",
+              "arrive_airport": "DEN",
+              "arrive_tz": "America/Denver",
+              "depart_utc": "2026-08-13T18:00:00Z",
+              "arrive_utc": "2026-08-13T20:40:00Z"
+            },
+            {
+              "name": "WN1480 DEN-PHX",
+              "flight": "WN1480",
+              "depart_airport": "DEN",
+              "depart_tz": "America/Denver",
+              "arrive_airport": "PHX",
+              "arrive_tz": "America/Phoenix",
+              "depart_utc": "2026-08-15T16:20:00Z",
+              "arrive_utc": "2026-08-15T18:15:00Z"
+            },
+            {
+              "name": "WN202 PHX-DEN",
+              "flight": "WN202",
+              "depart_airport": "PHX",
+              "depart_tz": "America/Phoenix",
+              "arrive_airport": "DEN",
+              "arrive_tz": "America/Denver",
+              "depart_utc": "2026-08-18T15:00:00Z",
+              "arrive_utc": "2026-08-18T16:50:00Z"
+            }
           ]
         },
         "get_next_trip": {
-          "response": { "flight": "UA509", "depart_utc": "2026-08-13T18:00:00Z", "depart_airport": "ORD", "depart_tz": "America/Chicago", "arrive_utc": "2026-08-13T20:40:00Z", "arrive_airport": "DEN", "arrive_tz": "America/Denver" }
+          "response": {
+            "flight": "UA509",
+            "depart_utc": "2026-08-13T18:00:00Z",
+            "depart_airport": "ORD",
+            "depart_tz": "America/Chicago",
+            "arrive_utc": "2026-08-13T20:40:00Z",
+            "arrive_airport": "DEN",
+            "arrive_tz": "America/Denver"
+          }
         }
       },
       "expect": {
         "toolCalls": [
           {
             "tool": "search_trips",
-            "graded": ["start_utc", "end_utc"],
-            "argKinds": { "start_utc": "instant-start", "end_utc": "instant-end" },
-            "admissible": [
-              { "start_utc": "2026-08-15T06:00:00Z", "end_utc": "2026-08-17T06:00:00Z" }
+            "graded": [
+              "start_utc",
+              "end_utc"
             ],
-            "verifyPhrase": { "phrase": "this coming weekend" }
+            "argKinds": {
+              "start_utc": "instant-start",
+              "end_utc": "instant-end"
+            },
+            "admissible": [
+              {
+                "start_utc": "2026-08-15T06:00:00Z",
+                "end_utc": "2026-08-17T06:00:00Z"
+              }
+            ],
+            "verifyPhrase": {
+              "phrase": "this coming weekend"
+            }
           }
         ],
         "response": {
           "checks": [
-            { "kind": "count", "expected": 1, "unit": "flights?|trips?", "note": "Only WN1480 on Saturday" },
-            { "kind": "weekday", "instant": "2026-08-15T16:20:00Z", "tz": "America/Denver", "note": "Should identify Saturday (10:20am MDT)" }
+            {
+              "kind": "count",
+              "expected": 1,
+              "unit": "flights?|trips?",
+              "note": "Only WN1480 on Saturday"
+            },
+            {
+              "kind": "weekday",
+              "instant": "2026-08-15T16:20:00Z",
+              "tz": "America/Denver",
+              "note": "Should identify Saturday (10:20am MDT)"
+            }
           ]
         }
       },
-      "directions": ["nl2time", "time2nl"],
+      "directions": [
+        "nl2time",
+        "time2nl"
+      ],
       "rationale": "Trap-free baseline. Now = WEDNESDAY Aug 12 2026, 8:30am MDT (UTC-6). This coming weekend = Sat Aug 15 00:00 MT .. Mon Aug 17 00:00 MT = [2026-08-15T06:00Z, 2026-08-17T06:00Z). In range: WN1480 departing 2026-08-15T16:20Z = Saturday Aug 15 10:20am MDT (same UTC/local day, no trap by design) — count 1, weekday Saturday. Out: UA509 (Thu Aug 13, 12:00pm CDT — also the consistent get_next_trip) and WN202 (Tue Aug 18). No rows on Friday, so no weekend-includes-Friday edge is exercised."
     },
     {
       "id": "trv-09",
       "title": "flights-past-48-hours",
-      "context": { "now": "2026-08-20T14:30:00-07:00", "timeZone": "America/Los_Angeles", "locale": "en-US" },
+      "context": {
+        "now": "2026-08-20T14:30:00-07:00",
+        "timeZone": "America/Los_Angeles",
+        "locale": "en-US"
+      },
       "user": "How many flights have I taken in the past 48 hours?",
       "mocks": {
         "search_trips": {
           "rows": [
-            { "name": "AS331 LAX-SFO", "flight": "AS331", "depart_airport": "LAX", "depart_tz": "America/Los_Angeles", "arrive_airport": "SFO", "arrive_tz": "America/Los_Angeles", "depart_utc": "2026-08-18T20:15:00Z", "arrive_utc": "2026-08-18T21:45:00Z" },
-            { "name": "AS1440 SFO-PDX", "flight": "AS1440", "depart_airport": "SFO", "depart_tz": "America/Los_Angeles", "arrive_airport": "PDX", "arrive_tz": "America/Los_Angeles", "depart_utc": "2026-08-19T02:10:00Z", "arrive_utc": "2026-08-19T04:00:00Z" },
-            { "name": "AS502 PDX-SEA", "flight": "AS502", "depart_airport": "PDX", "depart_tz": "America/Los_Angeles", "arrive_airport": "SEA", "arrive_tz": "America/Los_Angeles", "depart_utc": "2026-08-19T16:45:00Z", "arrive_utc": "2026-08-19T17:50:00Z" },
-            { "name": "AS990 SEA-LAX", "flight": "AS990", "depart_airport": "SEA", "depart_tz": "America/Los_Angeles", "arrive_airport": "LAX", "arrive_tz": "America/Los_Angeles", "depart_utc": "2026-08-20T15:00:00Z", "arrive_utc": "2026-08-20T17:55:00Z" },
-            { "name": "AA118 LAX-JFK", "flight": "AA118", "depart_airport": "LAX", "depart_tz": "America/Los_Angeles", "arrive_airport": "JFK", "arrive_tz": "America/New_York", "depart_utc": "2026-08-25T14:10:00Z", "arrive_utc": "2026-08-25T22:35:00Z" }
+            {
+              "name": "AS331 LAX-SFO",
+              "flight": "AS331",
+              "depart_airport": "LAX",
+              "depart_tz": "America/Los_Angeles",
+              "arrive_airport": "SFO",
+              "arrive_tz": "America/Los_Angeles",
+              "depart_utc": "2026-08-18T20:15:00Z",
+              "arrive_utc": "2026-08-18T21:45:00Z"
+            },
+            {
+              "name": "AS1440 SFO-PDX",
+              "flight": "AS1440",
+              "depart_airport": "SFO",
+              "depart_tz": "America/Los_Angeles",
+              "arrive_airport": "PDX",
+              "arrive_tz": "America/Los_Angeles",
+              "depart_utc": "2026-08-19T02:10:00Z",
+              "arrive_utc": "2026-08-19T04:00:00Z"
+            },
+            {
+              "name": "AS502 PDX-SEA",
+              "flight": "AS502",
+              "depart_airport": "PDX",
+              "depart_tz": "America/Los_Angeles",
+              "arrive_airport": "SEA",
+              "arrive_tz": "America/Los_Angeles",
+              "depart_utc": "2026-08-19T16:45:00Z",
+              "arrive_utc": "2026-08-19T17:50:00Z"
+            },
+            {
+              "name": "AS990 SEA-LAX",
+              "flight": "AS990",
+              "depart_airport": "SEA",
+              "depart_tz": "America/Los_Angeles",
+              "arrive_airport": "LAX",
+              "arrive_tz": "America/Los_Angeles",
+              "depart_utc": "2026-08-20T15:00:00Z",
+              "arrive_utc": "2026-08-20T17:55:00Z"
+            },
+            {
+              "name": "AA118 LAX-JFK",
+              "flight": "AA118",
+              "depart_airport": "LAX",
+              "depart_tz": "America/Los_Angeles",
+              "arrive_airport": "JFK",
+              "arrive_tz": "America/New_York",
+              "depart_utc": "2026-08-25T14:10:00Z",
+              "arrive_utc": "2026-08-25T22:35:00Z"
+            }
           ]
         },
         "get_next_trip": {
-          "response": { "flight": "AA118", "depart_utc": "2026-08-25T14:10:00Z", "depart_airport": "LAX", "depart_tz": "America/Los_Angeles", "arrive_utc": "2026-08-25T22:35:00Z", "arrive_airport": "JFK", "arrive_tz": "America/New_York" }
+          "response": {
+            "flight": "AA118",
+            "depart_utc": "2026-08-25T14:10:00Z",
+            "depart_airport": "LAX",
+            "depart_tz": "America/Los_Angeles",
+            "arrive_utc": "2026-08-25T22:35:00Z",
+            "arrive_airport": "JFK",
+            "arrive_tz": "America/New_York"
+          }
         }
       },
       "expect": {
         "toolCalls": [
           {
             "tool": "search_trips",
-            "graded": ["start_utc", "end_utc"],
-            "argKinds": { "start_utc": "instant-start", "end_utc": "instant-end" },
-            "admissible": [
-              { "start_utc": "2026-08-18T21:30:00Z", "end_utc": "2026-08-20T21:30:00Z" }
+            "graded": [
+              "start_utc",
+              "end_utc"
             ],
-            "verifyPhrase": { "phrase": "the past 48 hours" }
+            "argKinds": {
+              "start_utc": "instant-start",
+              "end_utc": "instant-end"
+            },
+            "admissible": [
+              {
+                "start_utc": "2026-08-18T21:30:00Z",
+                "end_utc": "2026-08-20T21:30:00Z"
+              }
+            ],
+            "verifyPhrase": {
+              "phrase": "the past 48 hours"
+            }
           }
         ],
         "response": {
           "checks": [
-            { "kind": "count", "expected": 3, "unit": "flights?|legs?|segments?|times?", "note": "AS1440, AS502, AS990; the Tuesday-afternoon AS331 departed 49h15m ago, just outside the window" }
+            {
+              "kind": "count",
+              "expected": 3,
+              "unit": "flights?|legs?|segments?|times?",
+              "note": "AS1440, AS502, AS990; the Tuesday-afternoon AS331 departed 49h15m ago, just outside the window"
+            }
           ]
         }
       },
-      "directions": ["nl2time", "time2nl"],
+      "directions": [
+        "nl2time",
+        "time2nl"
+      ],
       "rationale": "Now = THURSDAY Aug 20 2026, 2:30pm PDT (UTC-7) = 2026-08-20T21:30Z. 'The past 48 hours' is exact instant arithmetic, not calendar days: [now-48h, now) = [2026-08-18T21:30Z, 2026-08-20T21:30Z). In range: AS1440 (2026-08-19T02:10Z = Tue Aug 18 7:10pm PDT), AS502 (Wed Aug 19 9:45am PDT), AS990 (Thu Aug 20 8:00am PDT) = 3. AS331 departed 2026-08-18T20:15Z = Tue 1:15pm PDT, 49h15m before now — a start-of-day-two-days-ago reading ([2026-08-18T07:00Z, ...) would wrongly include it and give 4. AA118 (Aug 25) is future and the consistent get_next_trip."
     },
     {
       "id": "trv-10",
       "title": "morning-of-the-14th-departure",
-      "context": { "now": "2026-08-18T10:00:00-05:00", "timeZone": "America/Chicago", "locale": "en-US" },
+      "context": {
+        "now": "2026-08-18T10:00:00-05:00",
+        "timeZone": "America/Chicago",
+        "locale": "en-US"
+      },
       "user": "Did I fly anywhere on the morning of the 14th? What time did that flight leave?",
       "mocks": {
         "search_trips": {
           "rows": [
-            { "name": "DL2101 DEN-ORD", "flight": "DL2101", "depart_airport": "DEN", "depart_tz": "America/Denver", "arrive_airport": "ORD", "arrive_tz": "America/Chicago", "depart_utc": "2026-08-14T00:30:00Z", "arrive_utc": "2026-08-14T02:45:00Z" },
-            { "name": "UA1213 ORD-MSY", "flight": "UA1213", "depart_airport": "ORD", "depart_tz": "America/Chicago", "arrive_airport": "MSY", "arrive_tz": "America/Chicago", "depart_utc": "2026-08-14T13:05:00Z", "arrive_utc": "2026-08-14T15:20:00Z" },
-            { "name": "UA890 MSY-ORD", "flight": "UA890", "depart_airport": "MSY", "depart_tz": "America/Chicago", "arrive_airport": "ORD", "arrive_tz": "America/Chicago", "depart_utc": "2026-08-16T22:30:00Z", "arrive_utc": "2026-08-17T00:45:00Z" }
+            {
+              "name": "DL2101 DEN-ORD",
+              "flight": "DL2101",
+              "depart_airport": "DEN",
+              "depart_tz": "America/Denver",
+              "arrive_airport": "ORD",
+              "arrive_tz": "America/Chicago",
+              "depart_utc": "2026-08-14T00:30:00Z",
+              "arrive_utc": "2026-08-14T02:45:00Z"
+            },
+            {
+              "name": "UA1213 ORD-MSY",
+              "flight": "UA1213",
+              "depart_airport": "ORD",
+              "depart_tz": "America/Chicago",
+              "arrive_airport": "MSY",
+              "arrive_tz": "America/Chicago",
+              "depart_utc": "2026-08-14T13:05:00Z",
+              "arrive_utc": "2026-08-14T15:20:00Z"
+            },
+            {
+              "name": "UA890 MSY-ORD",
+              "flight": "UA890",
+              "depart_airport": "MSY",
+              "depart_tz": "America/Chicago",
+              "arrive_airport": "ORD",
+              "arrive_tz": "America/Chicago",
+              "depart_utc": "2026-08-16T22:30:00Z",
+              "arrive_utc": "2026-08-17T00:45:00Z"
+            }
           ]
         }
       },
@@ -393,24 +1062,49 @@
         "toolCalls": [
           {
             "tool": "search_trips",
-            "graded": ["start_utc", "end_utc"],
+            "graded": [
+              "start_utc",
+              "end_utc"
+            ],
             "admissibleWindow": {
               "startParam": "start_utc",
               "endParam": "end_utc",
-              "core": ["2026-08-14T13:00:00Z", "2026-08-14T14:00:00Z"],
-              "envelope": ["2026-08-14T05:00:00Z", "2026-08-14T17:00:00Z"]
+              "core": [
+                "2026-08-14T13:00:00Z",
+                "2026-08-14T14:00:00Z"
+              ],
+              "envelope": [
+                "2026-08-14T05:00:00Z",
+                "2026-08-14T17:00:00Z"
+              ]
             },
-            "verifyPhrase": { "phrase": "the morning of the 14th" }
+            "verifyPhrase": {
+              "phrase": "the morning of the 14th"
+            }
           }
         ],
         "response": {
           "checks": [
-            { "kind": "clockTime", "instant": "2026-08-14T13:05:00Z", "tz": "America/Chicago", "rejectUtcClock": true, "note": "8:05am CDT departure from ORD; 1:05pm/13:05 is the UTC rendering" },
-            { "kind": "regex", "accept": "\\byes\\b|you (did|flew|had)", "reject": "7:30", "note": "7:30pm is the local time of the decoy DL2101 leg (UTC-stamped Aug 14 but actually the evening of the 13th) — the answer flight is UA1213" }
+            {
+              "kind": "clockTime",
+              "instant": "2026-08-14T13:05:00Z",
+              "tz": "America/Chicago",
+              "rejectUtcClock": true,
+              "note": "8:05am CDT departure from ORD; 1:05pm/13:05 is the UTC rendering"
+            },
+            {
+              "kind": "regex",
+              "accept": "\\byes\\b|you (did|flew|had)",
+              "reject": "7:30",
+              "note": "7:30pm is the local time of the decoy DL2101 leg (UTC-stamped Aug 14 but actually the evening of the 13th) — the answer flight is UA1213"
+            }
           ]
         }
       },
-      "directions": ["nl2time", "time2nl"],
+      "directions": [
+        "nl2time",
+        "time2nl"
+      ],
       "rationale": "Now = TUESDAY Aug 18 2026, 10:00am CDT (UTC-5), so 'the 14th' is the recent past Friday Aug 14. Window grading (core/envelope per the 2026-07-26 blind-audit adjudication): CORE = minimal round-local-hour interval containing the one intended row (UA1213 departs 2026-08-14T13:05Z = Fri Aug 14 8:05am CDT) = [08:00, 09:00) CDT = [2026-08-14T13:00Z, 2026-08-14T14:00Z). ENVELOPE = the morning policy window [00:00, 12:00) CDT on Fri Aug 14 = [2026-08-14T05:00Z, 2026-08-14T17:00Z). Answer-invariant: core and envelope both select only UA1213. Trap row: DL2101 departs 2026-08-14T00:30Z = THURSDAY Aug 13 7:30pm CDT — before the envelope start, but a naive UTC morning-of-the-14th window [2026-08-14T00:00Z, 12:00Z) selects DL2101 and misses UA1213 entirely, producing the rejected 7:30 answer. UA890 (Sun Aug 16 5:30pm CDT return) is past the envelope end. nl2time's 6am-noon reading [14T11:00Z, 14T17:00Z) contains the core and fits the envelope. No upcoming trips exist in the story, so get_next_trip is deliberately left unmocked ('no data available' is the truth)."
     }
   ]
