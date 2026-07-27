@@ -85,7 +85,9 @@ class DescribeTimeTool(BaseTool):
                 "Convert UTC ISO 8601 timestamps into natural language for the user, correctly "
                 "rendered in the user's timezone and locale (already configured). Returns a "
                 "casual and a neutral phrasing per timestamp. Use this before telling the user "
-                "when something happened."
+                "when something happened. If a timestamp belongs to a different place than the "
+                "user (a flight's airport, a photo's location), pass that place's IANA zone as "
+                "time_zone so the wall time is rendered where the event happens."
             ),
         )
         self._context = context
@@ -101,15 +103,22 @@ class DescribeTimeTool(BaseTool):
                         type=types.Type.ARRAY,
                         items=types.Schema(type=types.Type.STRING),
                         description="UTC ISO 8601 timestamps, e.g. ['2026-07-01T02:05:00Z']",
-                    )
+                    ),
+                    "time_zone": types.Schema(
+                        type=types.Type.STRING,
+                        description="Optional IANA zone to render in, when the event belongs to a different place than the user (e.g. 'Asia/Tokyo' for a Tokyo landing). Omit for the user's own zone.",
+                    ),
                 },
                 required=["timestamps_utc"],
             ),
         )
 
     async def run_async(self, *, args: dict[str, Any], tool_context: ToolContext) -> Any:
+        context = dict(self._context)
+        if isinstance(args.get("time_zone"), str) and args["time_zone"].strip():
+            context["timeZone"] = args["time_zone"].strip()
         return call_bridge(
-            {"op": "describe", "instants": args.get("timestamps_utc", []), "context": self._context}
+            {"op": "describe", "instants": args.get("timestamps_utc", []), "context": context}
         )
 
 

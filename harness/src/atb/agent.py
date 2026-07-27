@@ -13,16 +13,7 @@ from .scenarios import Scenario
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
 SKILLS_DIR = REPO_ROOT / "skills"
-
-INSTRUCTION_TEMPLATE = """\
-You are a helpful assistant for the user's {domain_description}
-Answer the user's question using the available tools. Be concise and factual;
-if the data doesn't support an answer, say so.
-
-Current date and time: {now}
-User timezone: {timeZone}
-User locale: {locale}
-"""
+PROMPTS_DIR = REPO_ROOT / "prompts"
 
 
 def load_skill(skill: str | None) -> str:
@@ -41,6 +32,17 @@ def make_model(model_id: str):
     return model_id
 
 
+def _now_local(ctx: dict[str, str]) -> str:
+    """Human rendering of now in the user's zone, weekday included —
+    what a production system prompt typically carries."""
+    from datetime import datetime
+    from zoneinfo import ZoneInfo
+
+    instant = datetime.fromisoformat(ctx["now"].replace("Z", "+00:00"))
+    local = instant.astimezone(ZoneInfo(ctx["timeZone"]))
+    return local.strftime("%A, %B %-d, %Y, %-I:%M %p %Z")
+
+
 def build_agent(
     scenario: Scenario,
     domain_description: str,
@@ -48,11 +50,14 @@ def build_agent(
     condition: str,
     skill: str | None,
     recorder: list[dict[str, Any]],
+    prompt: str = "baseline-v1",
 ) -> LlmAgent:
     ctx = scenario.context
-    instruction = INSTRUCTION_TEMPLATE.format(
+    template = (PROMPTS_DIR / f"{prompt}.md").read_text()
+    instruction = template.format(
         domain_description=domain_description.rstrip(".") + ".",
         now=ctx["now"],
+        now_local=_now_local(ctx),
         timeZone=ctx["timeZone"],
         locale=ctx["locale"],
     )

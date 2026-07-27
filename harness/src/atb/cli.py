@@ -8,7 +8,7 @@ import json
 from datetime import datetime, timezone
 from pathlib import Path
 
-from .report import failures, load_rows, per_domain, summarize
+from .report import compare_conditions, failures, load_rows, per_domain, summarize
 from .runner import run_matrix
 from .scenarios import REPO_ROOT, load_all
 
@@ -21,11 +21,12 @@ def main() -> None:
     run_p.add_argument("--model", default="gemini-3.5-flash-lite")
     run_p.add_argument("--conditions", nargs="+", default=["baseline", "nl2time"], choices=["baseline", "nl2time"])
     run_p.add_argument("--skill", default="nl2time-v1", help="Skill fragment (skills/<name>.md) for the nl2time condition")
+    run_p.add_argument("--prompt", default="baseline-v1", help="Agent prompt template (prompts/<name>.md), used by BOTH conditions")
     run_p.add_argument("--domains", nargs="*", help="Domain names (default: all)")
     run_p.add_argument("--out", default=None, help="Output JSONL (default: results/<ts>-<model>.jsonl)")
     run_p.add_argument("--concurrency", type=int, default=4)
 
-    for name in ("report", "failures", "regrade"):
+    for name in ("report", "failures", "regrade", "compare"):
         p = sub.add_parser(name)
         p.add_argument("files", nargs="+", type=Path)
         if name == "regrade":
@@ -49,7 +50,7 @@ def main() -> None:
         stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
         out = Path(args.out) if args.out else REPO_ROOT / "results" / f"{stamp}-{args.model.replace('/', '_').replace(':', '_')}.jsonl"
         rows = asyncio.run(
-            run_matrix(domains, args.model, args.conditions, args.skill, out, args.concurrency)
+            run_matrix(domains, args.model, args.conditions, args.skill, out, args.concurrency, args.prompt)
         )
         print(f"\nwrote {len(rows)} rows to {out}\n")
         print(json.dumps(summarize(rows), indent=2))
@@ -75,6 +76,10 @@ def main() -> None:
                     fh.write(json.dumps(row) + "\n")
             print(f"wrote {len(regraded)} regraded rows to {args.out}")
         print(json.dumps(summarize(regraded), indent=2))
+        return
+
+    if args.command == "compare":
+        print(json.dumps(compare_conditions(rows), indent=2))
         return
 
     if args.command == "report":

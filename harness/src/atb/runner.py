@@ -22,10 +22,15 @@ RETRYABLE = ("429", "RESOURCE_EXHAUSTED", "500", "503", "UNAVAILABLE", "overload
 
 
 async def run_scenario(
-    domain: Domain, scenario: Scenario, model_id: str, condition: str, skill: str | None
+    domain: Domain,
+    scenario: Scenario,
+    model_id: str,
+    condition: str,
+    skill: str | None,
+    prompt: str = "baseline-v1",
 ) -> dict[str, Any]:
     recorder: list[dict[str, Any]] = []
-    agent = build_agent(scenario, domain.description, model_id, condition, skill, recorder)
+    agent = build_agent(scenario, domain.description, model_id, condition, skill, recorder, prompt)
     runner = InMemoryRunner(agent)
     started = time.monotonic()
     final_text = ""
@@ -57,7 +62,7 @@ async def run_scenario(
 
     graded = grade_scenario(scenario.expect, recorder, final_text, dict(scenario.context))
     return {
-        "run": {"model": model_id, "condition": condition, "skill": skill},
+        "run": {"model": model_id, "condition": condition, "skill": skill, "prompt": prompt},
         "domain": domain.name,
         "scenario": scenario.id,
         "directions": scenario.directions,
@@ -77,6 +82,7 @@ async def run_matrix(
     skill: str | None,
     out_path: Path,
     concurrency: int = 4,
+    prompt: str = "baseline-v1",
 ) -> list[dict[str, Any]]:
     semaphore = asyncio.Semaphore(concurrency)
     out_path.parent.mkdir(parents=True, exist_ok=True)
@@ -85,7 +91,7 @@ async def run_matrix(
 
     async def one(domain: Domain, scenario: Scenario, condition: str) -> None:
         async with semaphore:
-            row = await run_scenario(domain, scenario, model_id, condition, skill)
+            row = await run_scenario(domain, scenario, model_id, condition, skill, prompt)
         async with lock:
             results.append(row)
             with out_path.open("a") as fh:
@@ -102,6 +108,7 @@ async def run_matrix(
             "model": model_id,
             "conditions": conditions,
             "skill": skill,
+            "prompt": prompt,
             "scenario_count": sum(len(d.scenarios) for d in domains),
         }
     }

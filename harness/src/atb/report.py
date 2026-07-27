@@ -21,7 +21,7 @@ def load_rows(paths: list[Path]) -> list[dict[str, Any]]:
 def summarize(rows: list[dict[str, Any]]) -> dict[str, Any]:
     buckets: dict[tuple, dict[str, list]] = defaultdict(lambda: {"nl2time": [], "time2nl": [], "errors": 0})
     for row in rows:
-        key = (row["run"]["model"], row["run"]["condition"], row["run"].get("skill"))
+        key = (row["run"]["model"], row["run"]["condition"], row["run"].get("skill"), row["run"].get("prompt"))
         b = buckets[key]
         if row.get("error"):
             b["errors"] += 1
@@ -34,8 +34,11 @@ def summarize(rows: list[dict[str, Any]]) -> dict[str, Any]:
         return f"{sum(xs)}/{len(xs)} = {100 * sum(xs) / len(xs):.1f}%" if xs else "n/a"
 
     out: dict[str, Any] = {}
-    for (model, condition, skill), b in sorted(buckets.items()):
-        out[f"{model} | {condition}" + (f" | {skill}" if skill else "")] = {
+    for (model, condition, skill, prompt), b in sorted(buckets.items(), key=lambda kv: tuple(map(str, kv[0]))):
+        label = f"{model} | {condition} | prompt={prompt or 'baseline-v1'}"
+        if condition == "nl2time" and skill:
+            label += f" | skill={skill}"
+        out[label] = {
             "nl2time": acc(b["nl2time"]),
             "time2nl": acc(b["time2nl"]),
             "errors": b["errors"],
@@ -54,6 +57,47 @@ def per_domain(rows: list[dict[str, Any]], direction: str) -> dict[str, dict[str
         }
         for domain, conds in sorted(table.items())
     }
+
+
+def compare_conditions(rows: list[dict[str, Any]]) -> dict[str, Any]:
+    """Pair baseline vs nl2time rows by scenario (within model+prompt): which
+    scenarios the treatment FIXED (fail→pass) and which it REGRESSED
+    (pass→fail), per direction, with the failing details for cause analysis."""
+    paired: dict[tuple, dict[str, dict[str, Any]]] = defaultdict(dict)
+    for row in rows:
+        run = row["run"]
+        key = (run["model"], run.get("prompt"), row["scenario"])
+        paired[key][run["condition"]] = row
+
+    out: dict[str, Any] = {}
+    for direction in ("nl2time", "time2nl"):
+        fixed, regressed, both_fail = [], [], []
+        for (model, prompt, scenario), conds in sorted(paired.items()):
+            base, treat = conds.get("baseline"), conds.get("nl2time")
+            if not base or not treat or direction not in base["directions"]:
+                continue
+            b, t = base.get(f"{direction}_pass"), treat.get(f"{direction}_pass")
+            if b is None or t is None:
+                continue
+            if not b and t:
+                fixed.append(scenario)
+            elif b and not t:
+                regressed.append(
+                    {
+                        "scenario": scenario,
+                        "treatment_tool_calls": treat["tool_calls"],
+                        "treatment_response": treat["response"][:300],
+                        "failed_details": [r for r in treat["tool_results"] + treat["check_results"] if not r["passed"]],
+                    }
+                )
+            elif not b and not t:
+                both_fail.append(scenario)
+        out[direction] = {
+            "fixed_by_treatment": fixed,
+            "regressed_by_treatment": regressed,
+            "fail_in_both": both_fail,
+        }
+    return out
 
 
 def failures(rows: list[dict[str, Any]], limit: int = 50) -> list[dict[str, Any]]:
