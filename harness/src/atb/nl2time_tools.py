@@ -65,6 +65,10 @@ class ResolveTimephraseTool(BaseTool):
                         enum=["past", "future"],
                         description="Tense hint: 'past' for history questions, 'future' for upcoming; omit for nearest",
                     ),
+                    "time_zone": types.Schema(
+                        type=types.Type.STRING,
+                        description="Optional IANA zone to resolve in, when the phrase refers to a different place than the user (e.g. the home's zone for 'last night at the house'). Omit for the user's own zone.",
+                    ),
                 },
                 required=["phrase"],
             ),
@@ -74,6 +78,8 @@ class ResolveTimephraseTool(BaseTool):
         context = dict(self._context)
         direction = args.get("direction")
         context["bias"] = direction if direction in ("past", "future") else "none"
+        if isinstance(args.get("time_zone"), str) and args["time_zone"].strip():
+            context["timeZone"] = args["time_zone"].strip()
         return call_bridge({"op": "resolve", "phrase": args.get("phrase", ""), "context": context})
 
 

@@ -13,4 +13,4 @@ The benchmark is treatment-neutral; its first experiment measures the lift from 
 - `harness/` — Python (uv) ADK harness: `uv run atb run --model gemini-3.5-flash-lite`
 - `bridge/` — node bridge exposing nl2time to the Python harness and the verifier
 
-Status: full corpus — 10 domains × 10 scenarios, mechanically verified (goldens hand-derived + nl2time cross-checked); authoring the corpus alone surfaced 8 nl2time issues (nl2time#17–#24).
+Status: full corpus (10 domains × 10 scenarios; goldens hand-derived, mechanically verified, blind-audited — see docs/ground-truth.md) and a completed iteration study on gemini-3.5-flash-lite: baseline plateaus at 78.2%/~72% (args/rendering) under maximal prompting; nl2time tools + skill reach **94.9%/89%** — see [docs/results-flash-lite.md](docs/results-flash-lite.md). Authoring + runs surfaced 8 nl2time issues (#17–#24), fixed in nl2time 0.3.1.
