@@ -162,6 +162,14 @@
               {
                 "due_after": "2026-07-22T04:00:00Z",
                 "due_before": "2026-08-03T04:00:00Z"
+              },
+              {
+                "due_after": "2026-07-22T13:10:00Z",
+                "due_before": "2026-08-01T04:00:00Z"
+              },
+              {
+                "due_after": "2026-07-22T04:00:00Z",
+                "due_before": "2026-08-01T04:00:00Z"
               }
             ],
             "verifyPhrase": {
@@ -186,7 +194,7 @@
         "nl2time",
         "time2nl"
       ],
-      "rationale": "Now = WEDNESDAY Jul 22 2026, 9:10am EDT (UTC-4) — midweek so both week conventions agree on next week's interior. 'By the end of next week' = [start, end-of-next-week). End: Sunday-start (en-US CLDR) next week is Sun Jul 26..Sat Aug 1, so end = Sun Aug 2 00:00 ET = 2026-08-02T04:00Z (this matches the bridge's END for 'end of next week'); Monday-start (ISO) next week is Mon Jul 27..Sun Aug 2, end = Mon Aug 3 00:00 ET = 2026-08-03T04:00Z. Start: now itself (2026-07-22T13:10Z) or start of today (Jul 22 00:00 ET = 04:00Z); both admitted, crossed with both ends = 4 tuples. Rows: PM-311 Thu Jul 23 3pm ET, PM-318 Tue Jul 28 noon ET, and PM-322 at 2026-08-01T02:00Z = Fri Jul 31 10:00pm EDT (UTC-day Aug 1 flavor row) are inside ALL tuples; PM-330 Tue Aug 4 is past both ends; PM-301 Mon Jul 20 predates both starts. No rows between today-start and now, and none on the disputed edge day Sun Aug 2 local, so the count is 3 under every tuple."
+      "rationale": "Now = WEDNESDAY Jul 22 2026, 9:10am EDT (UTC-4) — midweek so both week conventions agree on next week's interior. 'By the end of next week' = [start, end-of-next-week). End — a three-member family (per the 2026-07-26 blind-audit adjudication): Sat-EOD: Sunday-start (en-US CLDR) next week is Sun Jul 26..Sat Aug 1, end = Sun Aug 2 00:00 ET = 2026-08-02T04:00Z (this matches the bridge's END for 'end of next week'); Sun-EOD: Monday-start (ISO) next week is Mon Jul 27..Sun Aug 2, end = Mon Aug 3 00:00 ET = 2026-08-03T04:00Z; Fri-EOD: the work-week reading ends Fri Jul 31 EOD = Sat Aug 1 00:00 ET = 2026-08-01T04:00Z. Start: now itself (2026-07-22T13:10Z) or start of today (Jul 22 00:00 ET = 04:00Z); both admitted, crossed with the three ends = 6 tuples. Rows: PM-311 Thu Jul 23 3pm ET, PM-318 Tue Jul 28 noon ET, and PM-322 at 2026-08-01T02:00Z = Fri Jul 31 10:00pm EDT (UTC-day Aug 1 flavor row, and inside even the Fri-EOD end 04:00Z) are inside ALL tuples; PM-330 Tue Aug 4 is past every end; PM-301 Mon Jul 20 predates both starts. No rows between today-start and now, none in [Sat Aug 1 00:00, Mon Aug 3 00:00) local, so the count is 3 under every tuple."
     },
     {
       "id": "pm-02",

@@ -37,12 +37,42 @@ def normalize(text: str) -> str:
 
 # ---------------------------------------------------------------- tool calls
 
+def _window_matches(window_spec: dict[str, Any], args: dict[str, Any]) -> tuple[bool, str]:
+    """core ⊆ [start, end) ⊆ envelope — for fuzzy window families ('Tuesday
+    night', 'this morning') where enumerating tuples is hopeless. The verifier
+    guarantees rows(core) == rows(envelope), so every admissible window gives
+    the same answer."""
+    start = parse_instant(args.get(window_spec["startParam"]))
+    end = parse_instant(args.get(window_spec["endParam"]))
+    if start is None or end is None:
+        return False, "unparseable bounds"
+    core_s, core_e = (parse_instant(x) for x in window_spec["core"])
+    env_s, env_e = (parse_instant(x) for x in window_spec["envelope"])
+    if not (start <= core_s and end >= core_e):
+        return False, "does not contain core"
+    if not (start >= env_s and end <= env_e):
+        return False, "exceeds envelope"
+    return True, "window ok"
+
+
 def grade_tool_call(expectation: dict[str, Any], calls: list[dict[str, Any]]) -> dict[str, Any]:
-    """Pass if ANY call to the tool matches ONE admissible tuple on ALL graded args."""
+    """Pass if ANY call to the tool matches ONE admissible tuple on ALL graded
+    args, or (for window expectations) satisfies core ⊆ window ⊆ envelope."""
     tool = expectation["tool"]
+    relevant = [c for c in calls if c["tool"] == tool]
+
+    window_spec = expectation.get("admissibleWindow")
+    if window_spec is not None:
+        attempts = []
+        for call in relevant:
+            ok, why = _window_matches(window_spec, call["args"])
+            if ok:
+                return {"tool": tool, "passed": True, "matched": "window", "call_args": call["args"]}
+            attempts.append({"args": call["args"], "why": why})
+        return {"tool": tool, "passed": False, "called": bool(relevant), "calls": [c["args"] for c in relevant], "attempts": attempts[:6]}
+
     graded = expectation["graded"]
     kinds = expectation["argKinds"]
-    relevant = [c for c in calls if c["tool"] == tool]
     attempts = []
     for call in relevant:
         for tuple_index, admissible in enumerate(expectation["admissible"]):

@@ -244,18 +244,19 @@
           {
             "tool": "search_media",
             "graded": ["taken_after", "taken_before"],
-            "argKinds": { "taken_after": "instant-start", "taken_before": "instant-end" },
-            "admissible": [
-              { "taken_after": "2026-07-04T10:00:00Z", "taken_before": "2026-07-04T16:00:00Z" },
-              { "taken_after": "2026-07-04T04:00:00Z", "taken_before": "2026-07-04T16:00:00Z" }
-            ],
+            "admissibleWindow": {
+              "startParam": "taken_after",
+              "endParam": "taken_before",
+              "core": ["2026-07-04T11:00:00Z", "2026-07-04T15:00:00Z"],
+              "envelope": ["2026-07-04T04:00:00Z", "2026-07-04T16:00:00Z"]
+            },
             "verifyPhrase": { "phrase": "the morning of July 4th" }
           }
         ],
         "response": { "checks": [ { "kind": "count", "expected": 2, "unit": "photos?|pictures?|shots?", "note": "7:05am and 10:40am ET; the 1:30pm and 9:20pm shots are not morning" } ] }
       },
       "directions": ["nl2time", "time2nl"],
-      "rationale": "Now = Tuesday Jul 7 2026, 7:00pm EDT. Morning of Sat Jul 4 in New York admits the conventional 6am-noon window [2026-07-04T10:00Z, 2026-07-04T16:00Z) (nl2time's reading) and the generous midnight-noon window [2026-07-04T04:00Z, 2026-07-04T16:00Z). No rows between 00:00 and 06:00 local, so both tuples select the same rows: 7:05am (11:05Z) and 10:40am (14:40Z) ET. The 1:30pm (17:30Z) and 9:20pm (2026-07-05T01:20Z) rows are afternoon/evening. A naive UTC morning window [06:00Z, 12:00Z) would return only the 11:05Z row. Count = 2."
+      "rationale": "Now = Tuesday Jul 7 2026, 7:00pm EDT. Window grading (core/envelope per the 2026-07-26 blind-audit adjudication): CORE = minimal round-local-hour interval containing both intended rows (7:05am and 10:40am ET) = [07:00, 11:00) ET = [2026-07-04T11:00Z, 2026-07-04T15:00Z). ENVELOPE = the morning policy window [00:00, 12:00) ET on Sat Jul 4 = [2026-07-04T04:00Z, 2026-07-04T16:00Z). Answer-invariant: core and envelope both select exactly the 11:05Z and 14:40Z rows — the 1:30pm (17:30Z) and 9:20pm (2026-07-05T01:20Z) rows are afternoon/evening, past the envelope end. nl2time's 6am-noon reading [04T10:00Z, 04T16:00Z) contains the core and fits the envelope. A naive UTC morning window [06:00Z, 12:00Z) would return only the 11:05Z row. Count = 2."
     },
     {
       "id": "med-07",

@@ -122,6 +122,42 @@ def main() -> None:
                 if spec["mock"]["kind"] != "filter-rows":
                     continue
                 cfg = spec["mock"]
+
+                if "admissibleWindow" in tc:
+                    win = tc["admissibleWindow"]
+                    rows = scenario.mocks.get(tc["tool"], {}).get("rows", [])
+                    core_s, core_e = (parse_instant(x) for x in win["core"])
+                    env_s, env_e = (parse_instant(x) for x in win["envelope"])
+                    if not (env_s <= core_s < core_e <= env_e):
+                        problems.append(f"{sid}: window core not inside envelope")
+                        continue
+                    rows_core = rows_in_range(rows, cfg["timestampField"], core_s, core_e)
+                    rows_env = rows_in_range(rows, cfg["timestampField"], env_s, env_e)
+                    if [json.dumps(r, sort_keys=True) for r in rows_core] != [json.dumps(r, sort_keys=True) for r in rows_env]:
+                        problems.append(
+                            f"{sid}: window NOT answer-invariant — core selects {len(rows_core)} rows, envelope {len(rows_env)}"
+                        )
+                    notes.append(f"{sid} window core [{win['core'][0]} .. {win['core'][1]}), envelope [{win['envelope'][0]} .. {win['envelope'][1]}): {len(rows_core)} rows")
+                    if "verifyPhrase" in tc:
+                        vp = tc["verifyPhrase"]
+                        result = bridge_resolve(vp["phrase"], dict(scenario.context))
+                        if result.get("ok"):
+                            r_s, r_e = parse_instant(result["start"]), parse_instant(result["end"])
+                            fits = r_s is not None and env_s <= r_s <= core_s and core_e <= r_e <= env_e
+                            if fits and "disagreementNote" in vp:
+                                problems.append(f"{sid}: disagreementNote present but nl2time window FITS — remove the note")
+                            elif not fits and "disagreementNote" not in vp:
+                                problems.append(
+                                    f"{sid}: nl2time window [{result['start']} .. {result['end']}) violates core/envelope — investigate"
+                                )
+                            elif not fits:
+                                notes.append(f"{sid}: EXPECTED disagreement on {vp['phrase']!r}: nl2time [{result['start']} .. {result['end']}) — {vp['disagreementNote']}")
+                        elif "disagreementNote" not in vp:
+                            problems.append(f"{sid}: verifyPhrase {vp['phrase']!r} not resolvable: {result.get('error')}")
+                        else:
+                            notes.append(f"{sid}: nl2time cannot resolve {vp['phrase']!r} (expected: {vp['disagreementNote']})")
+                    continue
+
                 if "verifyPhrase" in tc:
                     check_verify_phrase(sid, tc, cfg, dict(scenario.context))
                 rows = scenario.mocks.get(tc["tool"], {}).get("rows", [])

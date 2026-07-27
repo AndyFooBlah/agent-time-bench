@@ -70,16 +70,15 @@
           {
             "tool": "query_sleep",
             "graded": ["start_time", "end_time"],
-            "argKinds": { "start_time": "instant-start", "end_time": "instant-end" },
-            "admissible": [
-              { "start_time": "2026-07-21T22:00:00Z", "end_time": "2026-07-22T16:00:00Z" },
-              { "start_time": "2026-07-22T00:00:00Z", "end_time": "2026-07-22T14:00:00Z" },
-              { "start_time": "2026-07-21T16:00:00Z", "end_time": "2026-07-22T16:00:00Z" },
-              { "start_time": "2026-07-22T04:00:00Z", "end_time": "2026-07-23T04:00:00Z" }
-            ],
+            "admissibleWindow": {
+              "startParam": "start_time",
+              "endParam": "end_time",
+              "core": ["2026-07-22T10:00:00Z", "2026-07-22T11:00:00Z"],
+              "envelope": ["2026-07-22T00:00:00Z", "2026-07-22T16:00:00Z"]
+            },
             "verifyPhrase": {
               "phrase": "Tuesday night",
-              "disagreementNote": "nl2time resolves 'Tuesday night' to [2026-07-22T01:00Z, 2026-07-22T10:00Z) = Tue 9pm..Wed 6am ET, which ends BEFORE the 6:30am wake time (2026-07-22T10:30Z); this tool attributes sleep by wake time, so admissible windows must extend past the following morning. Deliberate domain-semantics extension of the bare night window."
+              "disagreementNote": "nl2time resolves 'Tuesday night' to [2026-07-22T01:00Z, 2026-07-22T10:00Z) = Tue 9pm..Wed 6am ET, which ends BEFORE the core (the 6:30am wake instant +/-30min, [22T10:00Z, 22T11:00Z)); this tool attributes sleep by wake time, so admissible windows must cover the following morning's wake. Deliberate domain-semantics extension of the bare night window."
             }
           }
         ],
@@ -90,7 +89,7 @@
         }
       },
       "directions": ["nl2time", "time2nl"],
-      "rationale": "Now = FRIDAY Jul 24 2026, 6:30pm EDT (UTC-4); Tuesday = Jul 21. Tuesday night's sleep is the session Tue 11:05pm ET (2026-07-22T03:05Z) .. Wed 6:30am ET (2026-07-22T10:30Z); the tool filters on sleep_end_utc. Admissible windows (all computed at UTC-4): [Tue 18:00, Wed 12:00) ET = [21T22:00Z, 22T16:00Z); [Tue 20:00, Wed 10:00) ET = [22T00:00Z, 22T14:00Z); noon-to-noon [Tue 12:00, Wed 12:00) ET = [21T16:00Z, 22T16:00Z); and civil wake-day Wednesday [Wed 00:00, Thu 00:00) ET = [22T04:00Z, 23T04:00Z). Every tuple selects exactly the one target row: the Monday-night decoy ends Tue 6:45am ET = 21T10:45Z (before all four starts), the Wednesday-night decoy ends Thu 6:20am ET = 23T10:20Z and the Thursday-night decoy ends Fri 6:40am ET = 24T10:40Z (past all four ends). Trap: naive UTC-Tuesday bounds [21T00Z, 22T00Z) select ONLY the Monday-night decoy (ends 21T10:45Z) and miss the real row entirely. The Thursday-night session doubles as the get_last_sleep_session static mock (most recent, consistent with rows). Wake clock: 10:30Z -> 6:30am EDT, so rejectUtcClock is a real trap."
+      "rationale": "Now = FRIDAY Jul 24 2026, 6:30pm EDT (UTC-4); Tuesday = Jul 21. Tuesday night's sleep is the session Tue 11:05pm ET (2026-07-22T03:05Z) .. Wed 6:30am ET (2026-07-22T10:30Z); the tool filters on sleep_end_utc. Window grading (core/envelope per the 2026-07-26 blind-audit adjudication): CORE = the graded wake instant 22T10:30Z +/- 30min = [2026-07-22T10:00Z, 2026-07-22T11:00Z) — every defensible wake-covering reading must contain the wake time. ENVELOPE = union of policy-defensible local readings: night starts no earlier than Tue 20:00 ET (night >= 20:00 policy; 18:00 starts are 'evening') = 2026-07-22T00:00Z, and for this sleep-attribution tool the family extends to noon of the wake day, Wed 12:00 ET = 2026-07-22T16:00Z. Answer-invariant: both core and envelope select exactly the one target row — the Monday-night decoy ends Tue 6:45am ET = 21T10:45Z (before the envelope start), the Wednesday-night decoy ends Thu 6:20am ET = 23T10:20Z and the Thursday-night decoy ends Fri 6:40am ET = 24T10:40Z (past the envelope end). Trap: naive UTC-Tuesday bounds [21T00Z, 22T00Z) select ONLY the Monday-night decoy (ends 21T10:45Z) and miss the real row entirely. The Thursday-night session doubles as the get_last_sleep_session static mock (most recent, consistent with rows). Wake clock: 10:30Z -> 6:30am EDT, so rejectUtcClock is a real trap."
     },
     {
       "id": "fit-02",
@@ -152,20 +151,19 @@
           {
             "tool": "query_workouts",
             "graded": ["start_time", "end_time"],
-            "argKinds": { "start_time": "instant-start", "end_time": "instant-end" },
-            "admissible": [
-              { "start_time": "2026-07-14T07:00:00Z", "end_time": "2026-07-14T19:00:00Z" },
-              { "start_time": "2026-07-14T13:00:00Z", "end_time": "2026-07-14T19:00:00Z" },
-              { "start_time": "2026-07-14T07:00:00Z", "end_time": "2026-07-14T19:35:00Z" },
-              { "start_time": "2026-07-14T13:00:00Z", "end_time": "2026-07-14T19:35:00Z" }
-            ],
+            "admissibleWindow": {
+              "startParam": "start_time",
+              "endParam": "end_time",
+              "core": ["2026-07-14T13:00:00Z", "2026-07-14T17:00:00Z"],
+              "envelope": ["2026-07-14T07:00:00Z", "2026-07-14T19:35:00Z"]
+            },
             "verifyPhrase": { "phrase": "this morning" }
           }
         ],
         "response": { "checks": [ { "kind": "count", "expected": 2, "unit": "workouts?|sessions?|times?", "note": "6:15am yoga + 9:40am run; the strength session was last night 9:30pm PDT" } ] }
       },
       "directions": ["nl2time", "time2nl"],
-      "rationale": "Now = TUESDAY Jul 14 2026, 12:35pm PDT (UTC-7); the morning is over. 'This morning' admits start at local midnight ([00:00 PT = 14T07:00Z) or 6am ([06:00 PT = 14T13:00Z), crossed with end at noon (12:00 PT = 14T19:00Z) or at now (12:35 PT = 14T19:35Z) — four tuples; nl2time (verified) returns [14T13:00Z, 14T19:00Z) = 6am..noon exactly. In-range under every tuple: yoga 6:15am PDT (14T13:15Z) and run 9:40am PDT (14T16:40Z) = 2 rows. The strength decoy is Monday 9:30pm PDT = 2026-07-14T04:30Z: its UTC day is already Tuesday, so naive UTC-morning bounds [14T00:00Z, 14T12:00Z) select ONLY the decoy and miss both real morning workouts (13:15Z, 16:40Z fall after 12:00Z). No rows in [19:00Z, 19:35Z), so all four tuples agree. get_latest_workout = the 9:40am run, consistent."
+      "rationale": "Now = TUESDAY Jul 14 2026, 12:35pm PDT (UTC-7); the morning is over. Window grading (core/envelope per the 2026-07-26 blind-audit adjudication): CORE = minimal round-local-hour interval containing both intended rows (yoga 6:15am, run 9:40am PDT) = [06:00, 10:00) PDT = [2026-07-14T13:00Z, 2026-07-14T17:00Z). ENVELOPE = the morning policy window [00:00, 12:00) PDT, end extended to now because now (12:35pm) is barely past noon and the pre-audit tuples admitted end=now: [00:00 PDT = 14T07:00Z, 12:35 PDT = 14T19:35Z). Answer-invariant: core and envelope both select exactly the yoga (14T13:15Z) and run (14T16:40Z) rows — the strength decoy Monday 9:30pm PDT = 2026-07-14T04:30Z precedes the envelope start, and no rows lie in [17:00Z, 19:35Z). Trap: the decoy's UTC day is already Tuesday, so naive UTC-morning bounds [14T00:00Z, 14T12:00Z) select ONLY the decoy and miss both real morning workouts (13:15Z, 16:40Z fall after 12:00Z). nl2time (verified) resolves 'this morning' to [14T13:00Z, 14T19:00Z) = 6am..noon, which contains the core and fits the envelope. get_latest_workout = the 9:40am run, consistent."
     },
     {
       "id": "fit-04",
@@ -396,16 +394,15 @@
           {
             "tool": "query_sleep",
             "graded": ["start_time", "end_time"],
-            "argKinds": { "start_time": "instant-start", "end_time": "instant-end" },
-            "admissible": [
-              { "start_time": "2026-07-07T08:00:00Z", "end_time": "2026-07-08T02:00:00Z" },
-              { "start_time": "2026-07-07T10:00:00Z", "end_time": "2026-07-08T00:00:00Z" },
-              { "start_time": "2026-07-07T02:00:00Z", "end_time": "2026-07-08T02:00:00Z" },
-              { "start_time": "2026-07-07T14:00:00Z", "end_time": "2026-07-08T14:00:00Z" }
-            ],
+            "admissibleWindow": {
+              "startParam": "start_time",
+              "endParam": "end_time",
+              "core": ["2026-07-07T20:20:00Z", "2026-07-07T21:20:00Z"],
+              "envelope": ["2026-07-07T10:00:00Z", "2026-07-08T02:00:00Z"]
+            },
             "verifyPhrase": {
               "phrase": "last night",
-              "disagreementNote": "nl2time resolves 'last night' to [2026-07-07T11:00Z, 2026-07-07T20:00Z) = Tue 9pm..Wed 6am AEST, which ends BEFORE the 6:50am wake time (2026-07-07T20:50Z); this tool attributes sleep by wake time, so admissible windows must extend past this morning's wake. Deliberate domain-semantics extension of the bare night window."
+              "disagreementNote": "nl2time resolves 'last night' to [2026-07-07T11:00Z, 2026-07-07T20:00Z) = Tue 9pm..Wed 6am AEST, which ends BEFORE the core (the 6:50am wake instant +/-30min, [07T20:20Z, 07T21:20Z)); this tool attributes sleep by wake time, so admissible windows must cover this morning's wake. Deliberate domain-semantics extension of the bare night window."
             }
           }
         ],
@@ -417,7 +414,7 @@
         }
       },
       "directions": ["nl2time", "time2nl"],
-      "rationale": "Now = WEDNESDAY Jul 8 2026, 8:05am AEST (UTC+10, no DST in July). Last night's sleep: Tue Jul 7 11:20pm AEST (2026-07-07T13:20Z) .. Wed Jul 8 6:50am AEST (2026-07-07T20:50Z) — the wake instant's UTC day is still TUESDAY Jul 7 while the local day is Wednesday Jul 8, so any UTC-day framing points at the wrong day entirely. Admissible windows for sleep_end_utc (all at UTC+10): [Tue 18:00, Wed 12:00) = [07T08:00Z, 08T02:00Z); [Tue 20:00, Wed 10:00) = [07T10:00Z, 08T00:00Z); noon-to-noon [Tue 12:00, Wed 12:00) = [07T02:00Z, 08T02:00Z); civil wake-day Wednesday [Wed 00:00, Thu 00:00) = [07T14:00Z, 08T14:00Z). Every tuple selects exactly the one target row (end 07T20:50Z); the Monday-night decoy ends Tue 6:40am AEST = 06T20:40Z, before all four starts. A naive UTC-Wednesday window [08T00:00Z, 09T00:00Z) selects NOTHING. Both clockTime traps are real: 11:20pm vs 13:20, 6:50am vs 20:50. get_last_sleep_session = the target row (most recent), consistent."
+      "rationale": "Now = WEDNESDAY Jul 8 2026, 8:05am AEST (UTC+10, no DST in July). Last night's sleep: Tue Jul 7 11:20pm AEST (2026-07-07T13:20Z) .. Wed Jul 8 6:50am AEST (2026-07-07T20:50Z) — the wake instant's UTC day is still TUESDAY Jul 7 while the local day is Wednesday Jul 8, so any UTC-day framing points at the wrong day entirely. Window grading (core/envelope per the 2026-07-26 blind-audit adjudication): CORE = the graded wake instant 07T20:50Z +/- 30min = [2026-07-07T20:20Z, 2026-07-07T21:20Z) — every defensible wake-covering reading must contain the wake time. ENVELOPE = union of policy-defensible local readings: night starts no earlier than Tue 20:00 AEST (night >= 20:00 policy) = 2026-07-07T10:00Z, and for this sleep-attribution tool the family extends to noon of the wake day, Wed 12:00 AEST = 2026-07-08T02:00Z. This also admits the blind audit's start-of-today reading (Wed 00:00 AEST = 07T14:00Z .. now 8:05am AEST = 07T22:05Z contains the core and fits the envelope) — the golden gap the audit flagged. Answer-invariant: core and envelope both select exactly the one target row (end 07T20:50Z); the Monday-night decoy ends Tue 6:40am AEST = 06T20:40Z, before the envelope start. A naive UTC-Wednesday window [08T00:00Z, 09T00:00Z) selects NOTHING. Both clockTime traps are real: 11:20pm vs 13:20, 6:50am vs 20:50. get_last_sleep_session = the target row (most recent), consistent."
     }
   ]
 }

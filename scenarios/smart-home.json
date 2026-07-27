@@ -318,36 +318,12 @@
               "start_utc",
               "end_utc"
             ],
-            "argKinds": {
-              "start_utc": "instant-start",
-              "end_utc": "instant-end"
+            "admissibleWindow": {
+              "startParam": "start_utc",
+              "endParam": "end_utc",
+              "core": ["2026-07-31T23:00:00Z", "2026-08-01T01:00:00Z"],
+              "envelope": ["2026-07-31T22:00:00Z", "2026-08-01T05:00:00Z"]
             },
-            "admissible": [
-              {
-                "start_utc": "2026-07-31T23:00:00Z",
-                "end_utc": "2026-08-01T02:00:00Z"
-              },
-              {
-                "start_utc": "2026-07-31T23:00:00Z",
-                "end_utc": "2026-08-01T03:00:00Z"
-              },
-              {
-                "start_utc": "2026-07-31T23:00:00Z",
-                "end_utc": "2026-08-01T05:00:00Z"
-              },
-              {
-                "start_utc": "2026-07-31T22:00:00Z",
-                "end_utc": "2026-08-01T02:00:00Z"
-              },
-              {
-                "start_utc": "2026-07-31T22:00:00Z",
-                "end_utc": "2026-08-01T03:00:00Z"
-              },
-              {
-                "start_utc": "2026-07-31T22:00:00Z",
-                "end_utc": "2026-08-01T05:00:00Z"
-              }
-            ],
             "verifyPhrase": {
               "phrase": "yesterday evening"
             }
@@ -369,7 +345,7 @@
         "nl2time",
         "time2nl"
       ],
-      "rationale": "Now = Saturday Aug 1 2026, 10:00am CDT (UTC-5) — month boundary. Yesterday = Friday Jul 31. 'Evening' admits defensible local windows with start in {17:00, 18:00} and end in {21:00, 22:00, 24:00}: Jul 31 17:00 CT = 2026-07-31T22:00Z, 18:00 CT = 23:00Z; ends 21:00 CT = 2026-08-01T02:00Z, 22:00 CT = 03:00Z, midnight = 05:00Z — six tuples ([18:00,21:00) matches nl2time). In-range under EVERY tuple: 2026-07-31T23:40Z = Fri 6:40pm CDT and 2026-08-01T00:55Z = Fri 7:55pm CDT (the latter's UTC day is already Aug 1 — mock-row UTC/local mismatch inside the window). Excluded under every tuple: 2026-07-31T14:30Z = Fri 9:30am (morning); 2026-07-31T00:10Z = THURSDAY Jul 30 7:10pm CDT (a UTC-day decoy: its UTC day is Jul 31 but it was Thursday evening locally); 2026-08-01T13:15Z = Sat 8:15am (this morning, before now 10:00am). Count = 2 under all readings."
+      "rationale": "Now = Saturday Aug 1 2026, 10:00am CDT (UTC-5) — month boundary. Yesterday = Friday Jul 31. Window grading (core/envelope per the 2026-07-26 blind-audit adjudication): CORE = minimal round-local-hour interval containing both intended rows (rings Fri 6:40pm and 7:55pm CDT) = [18:00, 20:00) CDT = [2026-07-31T23:00Z, 2026-08-01T01:00Z). ENVELOPE = the evening policy window [17:00, 24:00) CDT on Fri Jul 31 = [2026-07-31T22:00Z, 2026-08-01T05:00Z). Answer-invariant: core and envelope both select exactly 2026-07-31T23:40Z = Fri 6:40pm CDT and 2026-08-01T00:55Z = Fri 7:55pm CDT (the latter's UTC day is already Aug 1 — mock-row UTC/local mismatch inside the window). Excluded from the envelope: 2026-07-31T14:30Z = Fri 9:30am (morning); 2026-07-31T00:10Z = THURSDAY Jul 30 7:10pm CDT (a UTC-day decoy: its UTC day is Jul 31 but it was Thursday evening locally, before the envelope start); 2026-08-01T13:15Z = Sat 8:15am (this morning, past the envelope end). nl2time's [18:00, 21:00) reading contains the core and fits the envelope. Count = 2 under all readings."
     },
     {
       "id": "home-04",
@@ -558,47 +534,15 @@
               "start_utc",
               "end_utc"
             ],
-            "argKinds": {
-              "start_utc": "instant-start",
-              "end_utc": "instant-end"
+            "admissibleWindow": {
+              "startParam": "start_utc",
+              "endParam": "end_utc",
+              "core": ["2026-07-14T06:00:00Z", "2026-07-14T09:00:00Z"],
+              "envelope": ["2026-07-14T01:00:00Z", "2026-07-14T12:20:00Z"]
             },
-            "admissible": [
-              {
-                "start_utc": "2026-07-14T01:00:00Z",
-                "end_utc": "2026-07-14T11:00:00Z"
-              },
-              {
-                "start_utc": "2026-07-14T01:00:00Z",
-                "end_utc": "2026-07-14T12:00:00Z"
-              },
-              {
-                "start_utc": "2026-07-14T02:00:00Z",
-                "end_utc": "2026-07-14T11:00:00Z"
-              },
-              {
-                "start_utc": "2026-07-14T02:00:00Z",
-                "end_utc": "2026-07-14T12:00:00Z"
-              },
-              {
-                "start_utc": "2026-07-14T03:00:00Z",
-                "end_utc": "2026-07-14T11:00:00Z"
-              },
-              {
-                "start_utc": "2026-07-14T03:00:00Z",
-                "end_utc": "2026-07-14T12:00:00Z"
-              },
-              {
-                "start_utc": "2026-07-14T05:00:00Z",
-                "end_utc": "2026-07-14T11:00:00Z"
-              },
-              {
-                "start_utc": "2026-07-14T05:00:00Z",
-                "end_utc": "2026-07-14T12:00:00Z"
-              }
-            ],
             "verifyPhrase": {
               "phrase": "overnight",
-              "disagreementNote": "nl2time does not recognize 'overnight' as a time expression; goldens derived by hand as last night spanning local midnight (starts 8pm-midnight, ends 6-7am). nl2time's 'last night' for this context ([2026-07-14T02:00Z, 2026-07-14T11:00Z) = 9pm-6am CT) is one of the admissible tuples."
+              "disagreementNote": "nl2time does not recognize 'overnight' as a time expression; goldens derived by hand per the overnight policy [20:00 previous evening, max(07:00, now)] local. nl2time's 'last night' for this context ([2026-07-14T02:00Z, 2026-07-14T11:00Z) = 9pm-6am CT) contains the core and fits the envelope."
             }
           }
         ],
@@ -624,7 +568,7 @@
         "nl2time",
         "time2nl"
       ],
-      "rationale": "Now = TUESDAY Jul 14 2026, 7:20am CDT (UTC-5). 'Overnight' = last night spanning local midnight: defensible starts Mon Jul 13 20:00/21:00/22:00 CT (2026-07-14T01:00Z/02:00Z/03:00Z) or Tue midnight (2026-07-14T05:00Z); defensible ends Tue 6:00/7:00am CT (2026-07-14T11:00Z/12:00Z) — eight tuples; nl2time's 'last night' (9pm-6am CT) is among them. In-range under EVERY tuple: 2026-07-14T06:12Z = 1:12am CDT and 2026-07-14T08:47Z = 3:47am CDT (both after the latest start 05:00Z and before the earliest end 11:00Z). Excluded under every tuple: 2026-07-13T20:30Z = Mon 3:30pm CDT (yesterday afternoon, before the earliest start 2026-07-14T01:00Z) and 2026-07-12T07:05Z = Sun 2:05am CDT (two nights ago). Count = 2, answer yes. Statics are consistent: sensor state wet, last change = the 3:47am alert."
+      "rationale": "Now = TUESDAY Jul 14 2026, 7:20am CDT (UTC-5). Window grading (core/envelope per the 2026-07-26 blind-audit adjudication): CORE = minimal round-local-hour interval containing both intended rows (alerts 1:12am and 3:47am CDT) = [01:00, 04:00) CDT = [2026-07-14T06:00Z, 2026-07-14T09:00Z). ENVELOPE = the overnight policy window [20:00 previous evening, max(07:00, now)] local: Mon Jul 13 20:00 CT = 2026-07-14T01:00Z through now (7:20am > 7:00am) = Tue 07:20 CT = 2026-07-14T12:20Z. Answer-invariant: core and envelope both select exactly 2026-07-14T06:12Z = 1:12am CDT and 2026-07-14T08:47Z = 3:47am CDT. Excluded from the envelope: 2026-07-13T20:30Z = Mon 3:30pm CDT (yesterday afternoon, before the envelope start) and 2026-07-12T07:05Z = Sun 2:05am CDT (two nights ago). Count = 2, answer yes. Statics are consistent: sensor state wet, last change = the 3:47am alert."
     },
     {
       "id": "home-06",
@@ -687,60 +631,12 @@
               "start_utc",
               "end_utc"
             ],
-            "argKinds": {
-              "start_utc": "instant-start",
-              "end_utc": "instant-end"
+            "admissibleWindow": {
+              "startParam": "start_utc",
+              "endParam": "end_utc",
+              "core": ["2026-07-16T09:00:00Z", "2026-07-16T10:00:00Z"],
+              "envelope": ["2026-07-16T03:00:00Z", "2026-07-16T15:00:00Z"]
             },
-            "admissible": [
-              {
-                "start_utc": "2026-07-16T03:00:00Z",
-                "end_utc": "2026-07-16T13:00:00Z"
-              },
-              {
-                "start_utc": "2026-07-16T03:00:00Z",
-                "end_utc": "2026-07-16T14:00:00Z"
-              },
-              {
-                "start_utc": "2026-07-16T03:00:00Z",
-                "end_utc": "2026-07-16T15:00:00Z"
-              },
-              {
-                "start_utc": "2026-07-16T04:00:00Z",
-                "end_utc": "2026-07-16T13:00:00Z"
-              },
-              {
-                "start_utc": "2026-07-16T04:00:00Z",
-                "end_utc": "2026-07-16T14:00:00Z"
-              },
-              {
-                "start_utc": "2026-07-16T04:00:00Z",
-                "end_utc": "2026-07-16T15:00:00Z"
-              },
-              {
-                "start_utc": "2026-07-16T05:00:00Z",
-                "end_utc": "2026-07-16T13:00:00Z"
-              },
-              {
-                "start_utc": "2026-07-16T05:00:00Z",
-                "end_utc": "2026-07-16T14:00:00Z"
-              },
-              {
-                "start_utc": "2026-07-16T05:00:00Z",
-                "end_utc": "2026-07-16T15:00:00Z"
-              },
-              {
-                "start_utc": "2026-07-16T07:00:00Z",
-                "end_utc": "2026-07-16T13:00:00Z"
-              },
-              {
-                "start_utc": "2026-07-16T07:00:00Z",
-                "end_utc": "2026-07-16T14:00:00Z"
-              },
-              {
-                "start_utc": "2026-07-16T07:00:00Z",
-                "end_utc": "2026-07-16T15:00:00Z"
-              }
-            ],
             "verifyPhrase": {
               "phrase": "last night",
               "disagreementNote": "context.timeZone is the traveler's zone (Asia/Kolkata), but the question explicitly pins the night to the HOUSE's zone (Seattle, America/Los_Angeles); nl2time resolves in the context zone by design, so its Kolkata-night window is expected not to match the Pacific-time goldens."
@@ -769,7 +665,7 @@
         "nl2time",
         "time2nl"
       ],
-      "rationale": "Traveler context: now = Thursday Jul 16 2026, 9:00pm IST (Asia/Kolkata, +05:30 — non-integer-hour offset) = 2026-07-16T15:30Z = 8:30am PDT Thursday at the house. The user pins the window to the HOUSE's zone (America/Los_Angeles, UTC-7): last night in Seattle = Wed Jul 15 evening to Thu Jul 16 morning. Defensible starts Wed 20:00/21:00/22:00 PDT (2026-07-16T03:00Z/04:00Z/05:00Z) or Thu midnight PDT (2026-07-16T07:00Z); defensible ends Thu 6:00/7:00/8:00am PDT (2026-07-16T13:00Z/14:00Z/15:00Z) — twelve tuples. In-range under EVERY tuple: 2026-07-16T09:10Z = 2:10am PDT Thursday (count 1). Excluded under every tuple: 2026-07-15T21:05Z = Wed 2:05pm PDT (afternoon); 2026-07-16T02:05Z = Wed 7:05pm PDT (before the earliest start); 2026-07-16T15:20Z = Thu 8:20am PDT (after the latest end, before now = 8:30am PDT). The reported time must be 2:10am (house local), not 9:10 UTC nor 2:40pm IST. Statics consistent: latest event is the 8:20am open, door now closed."
+      "rationale": "Traveler context: now = Thursday Jul 16 2026, 9:00pm IST (Asia/Kolkata, +05:30 — non-integer-hour offset) = 2026-07-16T15:30Z = 8:30am PDT Thursday at the house. The user pins the window to the HOUSE's zone (America/Los_Angeles, UTC-7): last night in Seattle = Wed Jul 15 night to Thu Jul 16 morning. Window grading (core/envelope per the 2026-07-26 blind-audit adjudication): CORE = minimal round-local-hour interval containing the one intended row (open 2026-07-16T09:10Z = 2:10am PDT Thursday) = [02:00, 03:00) PDT = [2026-07-16T09:00Z, 2026-07-16T10:00Z). ENVELOPE = night policy in the house zone: start Wed Jul 15 20:00 PDT = 2026-07-16T03:00Z (night starts no earlier than 20:00 local — the 7:05pm PDT door event at 2026-07-16T02:05Z is deliberately outside every admissible reading), end Thu Jul 16 08:00 PDT = 2026-07-16T15:00Z (latest defensible morning end, still before now = 8:30am PDT). Answer-invariant: core and envelope both select only the 09:10Z open. Excluded from the envelope: 2026-07-15T21:05Z = Wed 2:05pm PDT (afternoon); 2026-07-16T02:05Z = Wed 7:05pm PDT (evening, before the 20:00 start); 2026-07-16T15:20Z = Thu 8:20am PDT (past the envelope end). The reported time must be 2:10am (house local), not 9:10 UTC nor 2:40pm IST. Statics consistent: latest event is the 8:20am open, door now closed."
     },
     {
       "id": "home-07",

@@ -114,3 +114,38 @@ def test_grade_scenario_directions():
     }
     graded = grade_scenario(expect, call("2026-07-19T04:00:00Z", "2026-07-26T04:00:00Z"), "4 times")
     assert graded["nl2time_pass"] and graded["time2nl_pass"]
+
+
+# ------------------------------------------------------------------- window
+
+WINDOW_EXP = {
+    "tool": "query_sleep",
+    "graded": ["start_time", "end_time"],
+    "admissibleWindow": {
+        "startParam": "start_time",
+        "endParam": "end_time",
+        "core": ["2026-07-22T01:00:00Z", "2026-07-22T11:00:00Z"],
+        "envelope": ["2026-07-21T16:00:00Z", "2026-07-22T16:00:00Z"],
+    },
+}
+
+
+def wcall(start, end):
+    return [{"tool": "query_sleep", "args": {"start_time": start, "end_time": end}}]
+
+
+def test_window_family_passes():
+    for start, end in [
+        ("2026-07-22T00:00:00Z", "2026-07-22T14:00:00Z"),   # civil wake day
+        ("2026-07-21T16:00:00Z", "2026-07-22T16:00:00Z"),   # full envelope
+        ("2026-07-22T01:00:00Z", "2026-07-22T11:00:00Z"),   # exact core
+    ]:
+        assert grade_tool_call(WINDOW_EXP, wcall(start, end))["passed"], (start, end)
+
+
+def test_window_missing_core_fails():
+    assert not grade_tool_call(WINDOW_EXP, wcall("2026-07-22T02:00:00Z", "2026-07-22T11:00:00Z"))["passed"]
+
+
+def test_window_exceeding_envelope_fails():
+    assert not grade_tool_call(WINDOW_EXP, wcall("2026-07-20T00:00:00Z", "2026-07-22T16:00:00Z"))["passed"]

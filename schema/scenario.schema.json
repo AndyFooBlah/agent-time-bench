@@ -116,7 +116,11 @@
     },
     "toolCallExpectation": {
       "type": "object",
-      "required": ["tool", "graded", "argKinds", "admissible"],
+      "required": ["tool", "graded"],
+      "oneOf": [
+        { "required": ["argKinds", "admissible"] },
+        { "required": ["admissibleWindow"] }
+      ],
       "additionalProperties": false,
       "properties": {
         "tool": { "type": "string" },
@@ -129,6 +133,18 @@
           "type": "array",
           "minItems": 1,
           "items": { "type": "object", "additionalProperties": { "type": "string" } }
+        },
+        "admissibleWindow": {
+          "type": "object",
+          "required": ["startParam", "endParam", "core", "envelope"],
+          "additionalProperties": false,
+          "description": "Fuzzy-window grading: pass iff core ⊆ [start,end) ⊆ envelope. For window families ('Tuesday night', 'this morning') where tuple enumeration is fragile. The verifier enforces rows(core) == rows(envelope).",
+          "properties": {
+            "startParam": { "type": "string" },
+            "endParam": { "type": "string" },
+            "core": { "type": "array", "minItems": 2, "maxItems": 2, "items": { "$ref": "#/$defs/instant" } },
+            "envelope": { "type": "array", "minItems": 2, "maxItems": 2, "items": { "$ref": "#/$defs/instant" } }
+          }
         },
         "verifyPhrase": {
           "type": "object",

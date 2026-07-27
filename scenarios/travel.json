@@ -394,11 +394,12 @@
           {
             "tool": "search_trips",
             "graded": ["start_utc", "end_utc"],
-            "argKinds": { "start_utc": "instant-start", "end_utc": "instant-end" },
-            "admissible": [
-              { "start_utc": "2026-08-14T11:00:00Z", "end_utc": "2026-08-14T17:00:00Z" },
-              { "start_utc": "2026-08-14T05:00:00Z", "end_utc": "2026-08-14T17:00:00Z" }
-            ],
+            "admissibleWindow": {
+              "startParam": "start_utc",
+              "endParam": "end_utc",
+              "core": ["2026-08-14T13:00:00Z", "2026-08-14T14:00:00Z"],
+              "envelope": ["2026-08-14T05:00:00Z", "2026-08-14T17:00:00Z"]
+            },
             "verifyPhrase": { "phrase": "the morning of the 14th" }
           }
         ],
@@ -410,7 +411,7 @@
         }
       },
       "directions": ["nl2time", "time2nl"],
-      "rationale": "Now = TUESDAY Aug 18 2026, 10:00am CDT (UTC-5), so 'the 14th' is the recent past Friday Aug 14. Morning admits two readings in America/Chicago: 6am-noon = [2026-08-14T11:00Z, 2026-08-14T17:00Z) and midnight-noon = [2026-08-14T05:00Z, 2026-08-14T17:00Z). UA1213 departs 2026-08-14T13:05Z = Fri Aug 14 8:05am CDT — inside both (count 1 under each). Trap row: DL2101 departs 2026-08-14T00:30Z = THURSDAY Aug 13 7:30pm CDT — outside both admissible windows, but a naive UTC morning-of-the-14th window [2026-08-14T00:00Z, 12:00Z) selects DL2101 and misses UA1213 entirely, producing the rejected 7:30 answer. UA890 (Sun Aug 16 5:30pm CDT return) is out. No upcoming trips exist in the story, so get_next_trip is deliberately left unmocked ('no data available' is the truth)."
+      "rationale": "Now = TUESDAY Aug 18 2026, 10:00am CDT (UTC-5), so 'the 14th' is the recent past Friday Aug 14. Window grading (core/envelope per the 2026-07-26 blind-audit adjudication): CORE = minimal round-local-hour interval containing the one intended row (UA1213 departs 2026-08-14T13:05Z = Fri Aug 14 8:05am CDT) = [08:00, 09:00) CDT = [2026-08-14T13:00Z, 2026-08-14T14:00Z). ENVELOPE = the morning policy window [00:00, 12:00) CDT on Fri Aug 14 = [2026-08-14T05:00Z, 2026-08-14T17:00Z). Answer-invariant: core and envelope both select only UA1213. Trap row: DL2101 departs 2026-08-14T00:30Z = THURSDAY Aug 13 7:30pm CDT — before the envelope start, but a naive UTC morning-of-the-14th window [2026-08-14T00:00Z, 12:00Z) selects DL2101 and misses UA1213 entirely, producing the rejected 7:30 answer. UA890 (Sun Aug 16 5:30pm CDT return) is past the envelope end. nl2time's 6am-noon reading [14T11:00Z, 14T17:00Z) contains the core and fits the envelope. No upcoming trips exist in the story, so get_next_trip is deliberately left unmocked ('no data available' is the truth)."
     }
   ]
 }

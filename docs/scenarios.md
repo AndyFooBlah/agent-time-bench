@@ -103,6 +103,44 @@ two must agree).
 - Genuine ambiguity ⇒ multiple tuples; anything else fails. "Close" is wrong.
 - Ungraded args are ignored entirely.
 
+### Fuzzy windows: `admissibleWindow` (core ⊆ window ⊆ envelope)
+
+Colloquial windows ("Tuesday night", "this morning", "overnight") form
+*families* of defensible bounds that tuple enumeration cannot cover (the blind
+audit proved this). Such expectations instead declare:
+
+```jsonc
+"admissibleWindow": {
+  "startParam": "start_time", "endParam": "end_time",
+  "core":     ["2026-07-22T01:00:00Z", "2026-07-22T11:00:00Z"],
+  "envelope": ["2026-07-21T16:00:00Z", "2026-07-22T16:00:00Z"]
+}
+```
+
+A call passes iff its window contains the core and stays inside the envelope.
+The verifier enforces **answer-invariance**: `rows(core) == rows(envelope)`,
+so every admissible window yields the same result set — the fuzziness cannot
+decide any scenario.
+
+### Reading policies (uniform across the corpus)
+
+- **Weekend** = the locale's weekend civil days (CLDR; Sat 00:00 → Mon 00:00
+  local for all current locales). Friday-evening-inclusive readings are NOT
+  admissible — colloquial "weekend trips" start Friday night, but "what
+  happened over the weekend" denotes the weekend days. Scenarios may place
+  Friday-evening rows as traps; they are outside every admissible reading.
+- **Duration-anchored sliding windows** ("past 48 hours") are exact
+  arithmetic from now: end = now (inclusive-end tolerance applies). Calendar
+  rounding is not admissible.
+- **Period-anchored open presents** ("this month", "since June 15th") admit
+  end = now, end-of-today, or end-of-period — data cannot postdate now, so
+  all agree.
+- **Night** ("last night", "X night") starts no earlier than 20:00 local
+  (18:00–20:00 is "evening"); sleep-attribution tools extend the family to
+  wake-covering windows per their stated contract.
+- **Morning** envelope is [00:00, 12:00) local (or up to now when now is
+  barely past noon); **evening** is [17:00, 24:00) local.
+
 ## ResponseCheck (time → NL grading)
 
 Checks run over the agent's final text, normalized (lowercased, whitespace

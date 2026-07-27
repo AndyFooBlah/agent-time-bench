@@ -99,11 +99,12 @@
           {
             "tool": "find_events",
             "graded": ["start_time", "end_time"],
-            "argKinds": { "start_time": "instant-start", "end_time": "instant-end" },
-            "admissible": [
-              { "start_time": "2026-07-15T13:00:00Z", "end_time": "2026-07-15T19:00:00Z" },
-              { "start_time": "2026-07-15T07:00:00Z", "end_time": "2026-07-15T19:00:00Z" }
-            ],
+            "admissibleWindow": {
+              "startParam": "start_time",
+              "endParam": "end_time",
+              "core": ["2026-07-15T16:00:00Z", "2026-07-15T19:00:00Z"],
+              "envelope": ["2026-07-15T07:00:00Z", "2026-07-15T19:00:00Z"]
+            },
             "verifyPhrase": { "phrase": "tomorrow morning" }
           }
         ],
@@ -115,7 +116,7 @@
         }
       },
       "directions": ["nl2time", "time2nl"],
-      "rationale": "Now = TUESDAY Jul 14 2026, 8:00am PDT (UTC-7). Tomorrow = civil Wednesday Jul 15 in LA. 'Morning' admits the 6am-noon reading (nl2time primary: [2026-07-15T13:00Z, 2026-07-15T19:00Z)) and the midnight-noon reading ([2026-07-15T07:00Z, 2026-07-15T19:00Z)). In range under BOTH tuples: Team standup 16:00Z = 9:00am PDT and 1:1 with Priya 18:00Z = 11:00am PDT (no rows in the disputed 00:00-06:00 sliver, so counts agree). Excluded: Lunch with recruiter 19:30Z = 12:30pm PDT (afternoon), Gym today Tue 7:00am, and the trap: Trivia night 2026-07-15T04:00Z = Tue Jul 14 9:00pm PDT tonight — its UTC day is Jul 15, so a naive UTC 'tomorrow' window would count it. get_next_event mocked consistently: next event after 8:00am Tue is tonight's Trivia (04:00Z)."
+      "rationale": "Now = TUESDAY Jul 14 2026, 8:00am PDT (UTC-7). Tomorrow = civil Wednesday Jul 15 in LA. Window grading (core/envelope per the 2026-07-26 blind-audit adjudication): CORE = minimal round-local-hour interval containing both intended rows (standup 9:00am, 1:1 11:00am PDT) = [09:00, 12:00) PDT = [2026-07-15T16:00Z, 2026-07-15T19:00Z). ENVELOPE = the morning policy window [00:00, 12:00) PDT on Wed Jul 15 = [2026-07-15T07:00Z, 2026-07-15T19:00Z) (no now-extension: now is Tuesday). Answer-invariant: core and envelope both select exactly the standup (16:00Z) and 1:1 (18:00Z). Excluded: Lunch with recruiter 19:30Z = 12:30pm PDT (afternoon, past the shared noon end), Gym today Tue 7:00am, and the trap: Trivia night 2026-07-15T04:00Z = Tue Jul 14 9:00pm PDT tonight — before the envelope start, but its UTC day is Jul 15, so a naive UTC 'tomorrow' window would count it. nl2time's 6am-noon reading [15T13:00Z, 15T19:00Z) contains the core and fits the envelope. get_next_event mocked consistently: next event after 8:00am Tue is tonight's Trivia (04:00Z)."
     },
     {
       "id": "cal-03",
