@@ -1,0 +1,57 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="860" height="428" viewBox="0 0 860 428" font-family="system-ui, -apple-system, sans-serif">
+<rect width="860" height="428" fill="#fcfcfb"/>
+<text x="24" y="34" font-size="19" font-weight="650" fill="#0b0b0b">Correct time bounds in tool calls, by model</text>
+<text x="24" y="56" font-size="13" fill="#52514e">78 graded scenarios per run; repeats pooled. Single-turn agents, identical prompts; the only difference is the nl2time tools + skill.</text>
+<circle cx="600" cy="30" r="5" fill="#eb6834"/><text x="610" y="34" font-size="12" fill="#52514e">baseline</text><circle cx="690" cy="30" r="5" fill="#2a78d6"/><text x="700" y="34" font-size="12" fill="#52514e">+ nl2time tools</text>
+<line x1="250.0" y1="78" x2="250.0" y2="384" stroke="#e8e7e3" stroke-width="1"/>
+<text x="250.0" y="404" font-size="11" fill="#52514e" text-anchor="middle">0%</text>
+<line x1="385.0" y1="78" x2="385.0" y2="384" stroke="#e8e7e3" stroke-width="1"/>
+<text x="385.0" y="404" font-size="11" fill="#52514e" text-anchor="middle">25%</text>
+<line x1="520.0" y1="78" x2="520.0" y2="384" stroke="#e8e7e3" stroke-width="1"/>
+<text x="520.0" y="404" font-size="11" fill="#52514e" text-anchor="middle">50%</text>
+<line x1="655.0" y1="78" x2="655.0" y2="384" stroke="#e8e7e3" stroke-width="1"/>
+<text x="655.0" y="404" font-size="11" fill="#52514e" text-anchor="middle">75%</text>
+<line x1="790.0" y1="78" x2="790.0" y2="384" stroke="#e8e7e3" stroke-width="1"/>
+<text x="790.0" y="404" font-size="11" fill="#52514e" text-anchor="middle">100%</text>
+<text x="236" y="112" font-size="13" fill="#0b0b0b" text-anchor="end" font-weight="600">Gemma 4 26B-A4B</text>
+<text x="236" y="127" font-size="10.5" fill="#52514e" text-anchor="end">open · tiny</text>
+<line x1="323.8461538461538" y1="111" x2="757.6923076923077" y2="111" stroke="#e8e7e3" stroke-width="2"/>
+<circle cx="323.8461538461538" cy="111" r="7" fill="#eb6834" stroke="#fcfcfb" stroke-width="2"/>
+<circle cx="757.6923076923077" cy="111" r="7" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"/>
+<text x="311.8461538461538" y="115" font-size="11.5" fill="#52514e" text-anchor="end">14%</text>
+<text x="769.6923076923077" y="115" font-size="11.5" fill="#0b0b0b" font-weight="650" text-anchor="start">94%</text>
+<text x="236" y="158" font-size="13" fill="#0b0b0b" text-anchor="end" font-weight="600">Gemini 3.6 Flash</text>
+<text x="236" y="173" font-size="10.5" fill="#52514e" text-anchor="end">closed · mainstream</text>
+<line x1="640.0" y1="157" x2="773.8461538461538" y2="157" stroke="#e8e7e3" stroke-width="2"/>
+<circle cx="640.0" cy="157" r="7" fill="#eb6834" stroke="#fcfcfb" stroke-width="2"/>
+<circle cx="773.8461538461538" cy="157" r="7" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"/>
+<text x="628.0" y="161" font-size="11.5" fill="#52514e" text-anchor="end">72%</text>
+<text x="785.8461538461538" y="161" font-size="11.5" fill="#0b0b0b" font-weight="650" text-anchor="start">97%</text>
+<text x="236" y="204" font-size="13" fill="#0b0b0b" text-anchor="end" font-weight="600">Gemini 3.5 Flash-Lite</text>
+<text x="236" y="219" font-size="10.5" fill="#52514e" text-anchor="end">closed · cheap</text>
+<line x1="670.0" y1="203" x2="762.3076923076924" y2="203" stroke="#e8e7e3" stroke-width="2"/>
+<circle cx="670.0" cy="203" r="7" fill="#eb6834" stroke="#fcfcfb" stroke-width="2"/>
+<circle cx="762.3076923076924" cy="203" r="7" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"/>
+<text x="658.0" y="207" font-size="11.5" fill="#52514e" text-anchor="end">78%</text>
+<text x="774.3076923076924" y="207" font-size="11.5" fill="#0b0b0b" font-weight="650" text-anchor="start">95%</text>
+<text x="236" y="250" font-size="13" fill="#0b0b0b" text-anchor="end" font-weight="600">DeepSeek V4 Pro</text>
+<text x="236" y="265" font-size="10.5" fill="#52514e" text-anchor="end">open · frontier</text>
+<line x1="760.0" y1="249" x2="769.2307692307693" y2="249" stroke="#e8e7e3" stroke-width="2"/>
+<circle cx="760.0" cy="249" r="7" fill="#eb6834" stroke="#fcfcfb" stroke-width="2"/>
+<circle cx="769.2307692307693" cy="249" r="7" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"/>
+<text x="760.0" y="237" font-size="11.5" fill="#52514e" text-anchor="middle">94%</text>
+<text x="769.2307692307693" y="271" font-size="11.5" fill="#0b0b0b" font-weight="650" text-anchor="middle">96%</text>
+<text x="236" y="296" font-size="13" fill="#0b0b0b" text-anchor="end" font-weight="600">Kimi K3</text>
+<text x="236" y="311" font-size="10.5" fill="#52514e" text-anchor="end">open · frontier</text>
+<line x1="762.3076923076924" y1="295" x2="778.4615384615385" y2="295" stroke="#e8e7e3" stroke-width="2"/>
+<circle cx="762.3076923076924" cy="295" r="7" fill="#eb6834" stroke="#fcfcfb" stroke-width="2"/>
+<circle cx="778.4615384615385" cy="295" r="7" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"/>
+<text x="762.3076923076924" y="283" font-size="11.5" fill="#52514e" text-anchor="middle">95%</text>
+<text x="778.4615384615385" y="317" font-size="11.5" fill="#0b0b0b" font-weight="650" text-anchor="middle">98%</text>
+<text x="236" y="342" font-size="13" fill="#0b0b0b" text-anchor="end" font-weight="600">GPT-5.6 Sol</text>
+<text x="236" y="357" font-size="10.5" fill="#52514e" text-anchor="end">closed · frontier</text>
+<circle cx="762.3076923076924" cy="341" r="11" fill="none" stroke="#eb6834" stroke-width="2.5"/>
+<circle cx="762.3076923076924" cy="341" r="6" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"/>
+<text x="744.3076923076924" y="345" font-size="11.5" fill="#0b0b0b" font-weight="650" text-anchor="end">95%</text>
+<text x="780.3076923076924" y="345" font-size="11.5" fill="#52514e" text-anchor="start">no change</text>
+</svg>
