@@ -4,3 +4,5 @@ __pycache__/
 *.pyc
 results/*.jsonl
 .claude/
+.env
+*.env

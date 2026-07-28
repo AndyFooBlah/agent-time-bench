@@ -13,7 +13,24 @@ from .runner import run_matrix
 from .scenarios import REPO_ROOT, load_all
 
 
+def _load_dotenv() -> None:
+    """Load REPO_ROOT/.env (KEY=value lines) without overriding existing env.
+    Values never get printed or logged."""
+    import os
+
+    path = REPO_ROOT / ".env"
+    if not path.exists():
+        return
+    for line in path.read_text().splitlines():
+        line = line.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+        key, _, value = line.partition("=")
+        os.environ.setdefault(key.strip(), value.strip())
+
+
 def main() -> None:
+    _load_dotenv()
     parser = argparse.ArgumentParser(prog="atb")
     sub = parser.add_subparsers(dest="command", required=True)
 
@@ -25,6 +42,8 @@ def main() -> None:
     run_p.add_argument("--domains", nargs="*", help="Domain names (default: all)")
     run_p.add_argument("--out", default=None, help="Output JSONL (default: results/<ts>-<model>.jsonl)")
     run_p.add_argument("--concurrency", type=int, default=4)
+    run_p.add_argument("--limit", type=int, help="Only the first N scenarios per domain (smoke tests)")
+    run_p.add_argument("--label", default="", help="Suffix for the default output filename (e.g. repeat number)")
 
     for name in ("report", "failures", "regrade", "compare"):
         p = sub.add_parser(name)
@@ -47,8 +66,12 @@ def main() -> None:
         domains = load_all(only=args.domains)
         if not domains:
             raise SystemExit("no matching domains")
+        if args.limit:
+            for domain in domains:
+                domain.scenarios = domain.scenarios[: args.limit]
         stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
-        out = Path(args.out) if args.out else REPO_ROOT / "results" / f"{stamp}-{args.model.replace('/', '_').replace(':', '_')}.jsonl"
+        suffix = f"-{args.label}" if args.label else ""
+        out = Path(args.out) if args.out else REPO_ROOT / "results" / f"{stamp}-{args.model.replace('/', '_').replace(':', '_')}{suffix}.jsonl"
         rows = asyncio.run(
             run_matrix(domains, args.model, args.conditions, args.skill, out, args.concurrency, args.prompt)
         )
