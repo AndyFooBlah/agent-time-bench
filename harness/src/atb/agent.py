@@ -65,9 +65,14 @@ def build_agent(
     if condition == "nl2time":
         tools.extend(build_nl2time_tools(dict(ctx)))
         instruction += load_skill(skill)
+    from google.genai import types as genai_types
+
     return LlmAgent(
         name="atb_agent",
         model=make_model(model_id),
         instruction=instruction,
         tools=tools,
+        # Answers are short; capping output keeps hosted-router credit
+        # reservations (which scale with max_tokens) and costs sane.
+        generate_content_config=genai_types.GenerateContentConfig(max_output_tokens=2048),
     )

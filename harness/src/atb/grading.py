@@ -144,9 +144,9 @@ def _deictic_patterns(delta_days: int, weekday: int) -> list[str]:
     if delta_days == 0:
         return [r"\btoday\b", r"\btonight\b", r"\bthis (?:morning|afternoon|evening)\b"]
     if delta_days == -1:
-        return [r"\byesterday\b", r"\blast night\b"]
+        return [r"\byesterday\b", r"\blast night\b", rf"\b{name}\b"]
     if delta_days == 1:
-        return [r"\btomorrow\b"]
+        return [r"\btomorrow\b", rf"\b{name}\b"]
     if -7 <= delta_days <= -2:
         return [rf"\b(?:last|this past|on)\s+{name}\b", rf"\b{name}\b"]
     if 2 <= delta_days <= 7:

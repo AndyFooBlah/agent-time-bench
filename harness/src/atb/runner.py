@@ -48,7 +48,8 @@ async def run_scenario(
                 user_id="bench", session_id=session.id, new_message=message
             ):
                 if event.content and event.content.parts:
-                    text = "".join(p.text or "" for p in event.content.parts)
+                    # Reasoning models emit thought parts; they are not the answer.
+                    text = "".join(p.text or "" for p in event.content.parts if not getattr(p, "thought", False))
                     if text.strip() and event.is_final_response():
                         final_text = text
             break
