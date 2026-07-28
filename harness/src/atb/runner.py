@@ -17,8 +17,8 @@ from .agent import build_agent
 from .grading import grade_scenario
 from .scenarios import Domain, Scenario
 
-MAX_ATTEMPTS = 3
-RETRYABLE = ("429", "RESOURCE_EXHAUSTED", "500", "503", "UNAVAILABLE", "overloaded")
+MAX_ATTEMPTS = 5
+RETRYABLE = ("429", "RESOURCE_EXHAUSTED", "500", "503", "UNAVAILABLE", "overloaded", "RateLimit")
 
 
 async def run_scenario(
@@ -55,7 +55,9 @@ async def run_scenario(
         except Exception as exc:  # noqa: BLE001 — record and (maybe) retry
             error = f"{type(exc).__name__}: {exc}"
             if attempt < MAX_ATTEMPTS and any(marker in str(exc) for marker in RETRYABLE):
-                await asyncio.sleep(4 * attempt)
+                # Per-minute quotas need long waits; other transients short ones.
+                is_rate = "RateLimit" in str(exc) or "429" in str(exc)
+                await asyncio.sleep(25 * attempt if is_rate else 4 * attempt)
                 continue
             error += "\n" + traceback.format_exc(limit=3)
             break
