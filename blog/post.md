@@ -1,7 +1,5 @@
 # What time is "last week"? Teaching AI agents to stop fumbling dates
 
-*Draft — numbers final except Claude Opus 5 (run in progress); charts in `blog/charts/`.*
-
 Ask an AI assistant "how many times did I buy Starbucks last week?" and three
 things have to go right that have nothing to do with coffee. The agent has to
 turn *last week* into exact search bounds — in your timezone, with your week
@@ -101,27 +99,30 @@ from 14% to **94%** on tool-call time bounds — statistically the same as
 GPT-5.6 Sol's baseline. If your agent's time competence currently comes from
 model scale, most of that spend is buying arithmetic a library does for free.
 
-**2. Frontier models don't take the treatment — and mostly don't need it
-for bounds.** Sol computes bounds at ~95% with or without the tools, and
-transcripts show why: it simply doesn't call them. Its own arithmetic is
-good; its rendering is another story — like every model, it still sometimes
-reads the UTC day off a raw timestamp, and it exhibits the strangest failure
-mode we found: **hybrid rendering**, where the model takes the tool's
-correct "Friday" and decorates it with a wrong explicit date derived from
-the raw UTC value ("closes Friday, August 1" — for a deadline that is
-Friday, July 31, 11:59pm Pacific). Partial trust is worse than either full
-trust or none.
+**2. At the frontier, the deciding factor is whether the model actually uses
+the tools.** The two closed frontier models split cleanly. Claude Opus 5
+follows the instruction and gains from it: 92% → **97%** on bounds and 88% →
+**98%** on rendering, the best rendering score in the study. GPT-5.6 Sol
+mostly ignores the tools and rides its own arithmetic — identical 95% on
+bounds with and without them, and rendering that actually *dips* (89% →
+85%). Sol's transcripts show the strangest failure mode we found: **hybrid
+rendering**, where the model takes the tool's correct "Friday" and decorates
+it with a wrong explicit date derived from the raw UTC value ("closes
+Friday, August 1" — for a deadline that is Friday, July 31, 11:59pm
+Pacific). Partial trust is worse than either full trust or none.
 
-**3. Everyone below the frontier gains, in both directions.** Mid-tier
-closed models (+17 to +25 points on bounds), open-weights frontier models
-(+9 to +13 points on rendering — their bounds were already strong), and the
-mainstream Gemini 3.6 Flash lands at **97% / 98%** with tools — the best
-combined score in the study.
+**3. Rendering is where nearly everyone gains.** Open-weights frontier
+models (DeepSeek V4 Pro, Kimi K3) already compute bounds at ~95% on their
+own, but gain +11 to +13 points on rendering; mid-tier closed models gain
++17 to +25 points on bounds *and* +8 to +18 on rendering. Gemini 3.6 Flash
+with tools lands at **97% / 98%**, tied with Opus 5 for the best combined
+score in the study — at a small fraction of the cost.
 
 The residual failures in the treatment condition are nearly all
 *tool-adoption* lapses — the model just doesn't call the resolver on some
 scenario and freelances — not tool errors. That ceiling is a property of the
-model's instruction-following, not of the approach.
+model's instruction-following, not of the approach: the same skill text
+produces 97%+ on the models that follow it.
 
 **The benchmark fixed the library, too.** Authoring the scenarios and
 running the first sweep surfaced eight real nl2time bugs — "between July 4th
