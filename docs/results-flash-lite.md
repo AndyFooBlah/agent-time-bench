@@ -127,3 +127,34 @@ baseline-v2/v3 (identical for both conditions), skill nl2time-v3,
 nl2time 0.3.1. Sweep flash-lite / flash / a GPT model / a Claude model via
 LiteLLM, several seeds per config to average the ±4pt noise, then the blog
 charts (issue #5).
+
+---
+
+# Multi-model sweep (2026-07-28)
+
+Frozen config (prompt `baseline-v2`, skill `nl2time-v3`, nl2time 0.3.1),
+2–3 full repeats per model, repeats pooled. Charts: `blog/charts/`.
+
+| Model | Class | NL→time | time→NL |
+|---|---|---|---|
+| Gemma 4 26B-A4B | open · tiny (~4B active) | 13.7% → **94.0%** | 51.3% → **86.3%** |
+| Gemini 3.5 Flash-Lite | closed · cheap | 77.8% → **94.9%** | 72.3% → **90.7%** |
+| Gemini 3.6 Flash | closed · mainstream | 72.2% → **97.0%** | 90.7% → **98.3%** |
+| DeepSeek V4 Pro | open · frontier | 94.4% → **96.2%** | 79.7% → **92.7%** |
+| Kimi K3 | open · frontier | 94.9% → **97.9%** | 81.7% → **92.3%** |
+| GPT-5.6 Sol | closed · frontier | 94.9% → 94.9% | 89.0% → 85.0% |
+| Claude Opus 5 | closed · frontier | 91.7% → **97.4%** | 88.0% → **98.0%** |
+
+Every model gains except GPT-5.6 Sol, which declines slightly on rendering.
+The two closed frontier models split on *tool adoption*: Opus 5 uses the
+tools when told to (+5.7pt args, +10pt rendering — its treatment rendering is
+the best in the study alongside Gemini 3.6 Flash); Sol largely ignores them
+and rides its own arithmetic, which is strong for bounds but leaves the
+rendering traps unfixed. Paired analysis for Opus: 4 args + 12 rendering
+scenarios fixed, 1 regressed (fit-10 — the sleep-window contract case that
+fails in both conditions for most models).
+
+Operational notes: two provider-side stalls cost a rerun each (an exhausted
+Anthropic balance, then an OpenRouter per-key spend cap) — both surfaced as
+100% error rows and were discarded, never graded. Gemma's 13 treatment
+errors are malformed tool calls under load; they are counted as failures.
