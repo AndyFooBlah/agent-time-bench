@@ -1,5 +1,11 @@
 # What time is "last week"? Teaching AI agents to stop fumbling dates
 
+> **Published** at [andrewbrook.dev/writing/agents-and-time](https://andrewbrook.dev/writing/agents-and-time/).
+> This file is the source draft; the site copy lives in the
+> [andrewbrook-dev](https://github.com/AndyFooBlah/andrewbrook-dev) repo
+> (`src/content/posts/agents-and-time.md`). Charts here are the originals —
+> regenerate with `scripts/make_charts.py`, then sync them into the site.
+
 Ask an AI assistant "how many times did I buy Starbucks last week?" and three
 things have to go right that have nothing to do with coffee. The agent has to
 turn *last week* into exact search bounds — in your timezone, with your week
