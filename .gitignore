@@ -2,7 +2,14 @@ node_modules/
 .venv/
 __pycache__/
 *.pyc
-results/*.jsonl
 .claude/
 .env
 *.env
+
+# results/ convention (see results/README.md): the published sweep rows
+# (results/sweep-*.jsonl) and the annotated results/invalid/ runs are
+# committed; every other JSONL under results/ is local scratch (smoke runs,
+# iteration runs, default-named `atb run` output) and stays untracked.
+results/**/*.jsonl
+!results/sweep-*.jsonl
+!results/invalid/*.jsonl
