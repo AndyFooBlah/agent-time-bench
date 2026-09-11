@@ -1,15 +1,18 @@
 {
   "name": "bridge",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "description": "stdin/stdout JSON bridge exposing nl2time (resolve / describe) to the Python harness and scripts/verify_goldens.py",
+  "private": true,
+  "type": "module",
+  "main": "bridge.mjs",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo '{\"op\":\"resolve\",\"phrase\":\"last week\",\"context\":{\"now\":\"2026-07-22T08:15:00-04:00\",\"timeZone\":\"America/New_York\",\"locale\":\"en-US\"}}' | node bridge.mjs | grep -q '\"ok\":true'"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "type": "commonjs",
+  "author": "Andrew Brook",
+  "license": "Apache-2.0",
+  "engines": {
+    "node": ">=22"
+  },
   "dependencies": {
     "nl2time": "^0.3.1"
   }

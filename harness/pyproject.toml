@@ -3,6 +3,7 @@ name = "atb"
 version = "0.1.0"
 description = "agent-time-bench harness: ADK agents over mocked tools, graded on date/time competence"
 readme = "README.md"
+license = "Apache-2.0"
 authors = [
     { name = "Andrew Brook", email = "andrew.brook@fooblah.org" }
 ]
