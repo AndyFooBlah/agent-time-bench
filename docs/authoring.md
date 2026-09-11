@@ -97,9 +97,9 @@ them.
 ## Verify before you finish
 
 ```bash
-harness/.venv/bin/python -m json.tool scenarios/<domain>.json > /dev/null
-harness/.venv/bin/python scripts/verify_goldens.py <domain>
-(cd harness && uv run atb validate)
+python3 -m json.tool scenarios/<domain>.json > /dev/null
+uv run --project harness python scripts/verify_goldens.py <domain>
+uv run --project harness atb validate
 ```
 
 All three must pass, and you must eyeball the printed in-range row selections

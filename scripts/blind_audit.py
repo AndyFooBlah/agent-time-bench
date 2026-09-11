@@ -13,8 +13,8 @@ tuple is missing from the goldens (which would mean the goldens are too
 narrow). Prints a per-scenario verdict; disagreements are for human review.
 
 Run from repo root:
-  harness/.venv/bin/python scripts/blind_audit.py strip <outdir>
-  harness/.venv/bin/python scripts/blind_audit.py compare <derivations.json>
+  uv run --project harness python scripts/blind_audit.py strip <outdir>
+  uv run --project harness python scripts/blind_audit.py compare <derivations.json>
 """
 
 from __future__ import annotations

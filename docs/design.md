@@ -44,9 +44,10 @@ Every scenario is single-turn and fully pinned:
     is *checkable from timestamps alone* (e.g. the count of matching rows, the
     civil day of a payment in the user's zone).
 
-A scenario exercises one or both directions; every domain's set of ten exercises
-both several times, plus at least one **trap** case where the naive UTC reading
-and the correct local reading differ (cross-midnight, month boundary, DST, week
+A scenario exercises one or both directions (`directions: ["nl2time", "time2nl"]`
+in the scenario); every domain's set of ten exercises both several times, plus
+at least one **trap** case where the naive UTC reading and the correct local
+reading differ (cross-midnight, month boundary, non-whole-hour offset, week
 start).
 
 ### Tolerances (grading, both conditions)
@@ -74,37 +75,54 @@ start).
 | 9 | project-mgmt | issues due/updated queries | "end of next week", business days, overdue rendering |
 | 10 | media-library | photo search by taken-date | named holidays ("Memorial Day weekend"), "last summer" |
 
-All English, US locales dominant with a few en-GB contexts (week-start contrast),
-several context dates placed near DST transitions and month/year boundaries on
-purpose. More languages/domains later.
+Actual coverage of the current corpus (computed from `scenarios/*.json`): all
+100 scenarios are English-language utterances; locales are 83% `en-US`, with
+`en-IN` (8), `en-AU` (3), `en-DE` (2), `en-NZ`, `de-DE`, `en-GB`, `en-CA` (1
+each) — the non-US locales supply the Monday-start week convention. Zones: 10,
+led by `America/New_York` (56) and `America/Chicago` (15); the non-whole-hour
+offsets are `Asia/Kolkata` (9, +05:30) and `America/St_Johns` (1, −02:30 in
+summer). Every `context.now` falls between 2026-06-01 and 2026-08-20, i.e.
+mid-summer in every zone: **no scenario's `now` is within a week of a DST
+transition**, so DST-day behaviour (23/25-hour days, non-existent wall times)
+is not measured by this corpus. A dedicated DST/edge-zone stress set and
+non-English utterances are tracked in issue #4.
 
 ## Conditions & run matrix
 
 A **run** = (model) × (condition) × (skill version) over all 100 scenarios.
 
 - **baseline** — domain tools only; the agent does time math itself.
-- **nl2time** — adds two tools backed by the nl2time JS library via a local
-  bridge (`harness/tools/nl2time_bridge`):
-  - `resolve_timephrase(phrase) → {start_utc, end_utc, grain, alternatives[]}`
-  - `describe_time(timestamps_utc[]) → phrases[]` (casual + neutral forms)
-  Context (now/tz/locale) is injected by the harness, not trusted to the model.
+- **nl2time** — adds two tools (`harness/src/atb/nl2time_tools.py`) backed by
+  the nl2time JS library through a stdin/stdout JSON bridge (`bridge/bridge.mjs`,
+  one Node process per call):
+  - `resolve_timephrase(phrase, direction?: "past"|"future", time_zone?)
+    → {ok, interpreted_as, start, end, grain, alternatives[]}` — `start`/`end`
+    are UTC ISO 8601 (half-open); `alternatives` lists other admissible readings.
+  - `describe_time(timestamps_utc[], time_zone?) → {ok, phrases[{instant, casual, neutral}]}`
+  Context (now / timeZone / locale) is injected by the harness, not trusted to
+  the model; the optional `time_zone` lets the agent resolve or render in a
+  different place's zone (an airport, the house) than the user's.
 - **skills** — versioned markdown system-prompt fragments (`skills/`) telling
   the agent when/how to use the time tools (and, in baseline, nothing beyond the
   generic agent instructions, so the comparison isolates tools+skill).
 
 The agent harness is Google **ADK** (Python), single `LlmAgent`, function tools,
-in-memory sessions; model strings are pluggable (Gemini native now; other
-vendors via ADK's LiteLLM wrapper later — nothing in scenarios or grading is
-Gemini-specific).
+in-memory sessions; model strings are pluggable (Gemini natively;
+`litellm:<provider>/<model>` selects ADK's LiteLLM wrapper for other vendors —
+nothing in scenarios or grading is Gemini-specific).
 
 ## Scoring & reporting
 
-Per scenario: `nl2time_args` (0/1 per graded tool-call expectation),
-`nl2nl_response` (0/1 per response check), plus diagnostics (which tolerance
-fired, raw args, full response). Per run: direction-level and domain-level
-accuracy; the headline chart is baseline vs. treatment accuracy per direction
-per model. All run artifacts are JSONL under `results/` (gitignored raw, with
-committed summaries).
+Per scenario row: `nl2time_pass` (true iff every graded tool-call expectation
+matched an admissible tuple; `null` if the scenario does not grade that
+direction) and `time2nl_pass` (true iff every response check passed), plus
+diagnostics (`tool_results`, `check_results`: which tuple/tolerance matched,
+raw args, full response). Per run (`atb report`): direction-level and
+domain-level accuracy; `atb compare` pairs conditions by scenario to list
+fixes and regressions. The headline chart is baseline vs. treatment accuracy
+per direction per model. Run artifacts are JSONL under `results/`; the
+published sweep rows are committed, everything else is local scratch (see
+`results/README.md`).
 
 Framework: thin custom runner (see `docs/framework-choice.md` for the
 evaluation of EvalBench / ADK-native eval / Inspect AI that led here).

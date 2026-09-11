@@ -1,2 +1,1 @@
-def main() -> None:
-    print("Hello from agent-time-bench-harness!")
+"""agent-time-bench harness (`atb`). Entry point: atb.cli:main."""

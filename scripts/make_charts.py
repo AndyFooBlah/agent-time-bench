@@ -6,7 +6,7 @@ ink #0b0b0b/#52514e, surface #fcfcfb):
   blog/charts/args-dumbbell.svg  — NL→time tool-call accuracy per model
   blog/charts/resp-dumbbell.svg  — time→NL rendering accuracy per model
 
-Run: harness/.venv/bin/python scripts/make_charts.py
+Run (repo root): uv run --project harness python scripts/make_charts.py
 """
 
 from __future__ import annotations

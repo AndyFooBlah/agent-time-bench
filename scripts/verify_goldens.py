@@ -18,7 +18,7 @@ For every domain file:
 4. Traps must be real: rejectUtcDay requires UTC day != local day;
    rejectUtcClock requires differing wall clocks.
 
-Run: harness/.venv/bin/python scripts/verify_goldens.py [domain ...]
+Run (repo root): uv run --project harness python scripts/verify_goldens.py [domain ...]
 """
 
 from __future__ import annotations
