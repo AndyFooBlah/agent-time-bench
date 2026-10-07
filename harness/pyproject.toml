@@ -10,7 +10,7 @@ authors = [
 requires-python = ">=3.12"
 dependencies = [
     "google-adk>=2.5.0",
-    "litellm>=1.93.0",
+    "litellm>=1.93.2",
     "jsonschema>=4.26.0",
 ]
 
