@@ -41,3 +41,17 @@ one's timestamp. Synced daily to `andy-private-docs/journals/`.
 - ~2026-07-29T20:39Z [milestone] Writeup published at andrewbrook.dev/writing/agents-and-time/, with the owner's preface recording that the code is AI-written and lightly reviewed.
 - ~2026-09-10T22:08Z [step] Deep-audit hygiene: Apache-2.0 + CC BY 4.0 licences declared, direct `google-adk`/`litellm` dependencies instead of the extras group, the 7-model sweep rows committed with a `results/` convention, working Quickstart and SECURITY.md.
 - 2026-10-16T18:05Z [step] Journal created and backfilled from commit history, run artifacts and session records, per the owner's new global journal policy in `~/.claude/CLAUDE.md`.
+
+- 2026-10-17T04:52Z [incident] **Backfilled timestamps in this journal are seven hours early and are not UTC.**
+  Spot-checked against the commits they cite: entries generated with
+  `git log --date=format:'%Y-%m-%dT%H:%MZ'` render each commit in its own local zone (here PDT,
+  UTC-7) and then have a literal `Z` appended by the format string, so the `Z` is wrong. Add seven
+  hours to any entry that was derived from commit times. Entries written from session chronology
+  rather than from that command are unaffected, so this journal may mix both.
+- 2026-10-17T04:52Z [learning] Correct incantation for a UTC backfill:
+  `TZ=UTC git log --date=format-local:'%Y-%m-%dT%H:%MZ'` — `format-local`, not `format`. Appending a
+  literal `Z` to a local-time format produces timestamps that look authoritative and are silently
+  wrong, which is worse than an obviously missing timezone. This hit several repos in the
+  2026-10-16 journal rollout, independently, because the same command was used in each.
+- 2026-10-17T04:52Z [decision] Corrected by appending rather than editing the entries above, per the append-only
+  rule.
