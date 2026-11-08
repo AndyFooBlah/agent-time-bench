@@ -56,3 +56,4 @@ one's timestamp. Synced daily to `andy-private-docs/journals/`.
 - 2026-10-17T04:52Z [decision] Corrected by appending rather than editing the entries above, per the append-only
   rule.
 - 2026-11-08T17:32Z [step] Turned on Dependabot alerts and security updates, and added a standard `.github/dependabot.yml`: security updates only (routine version updates off so results stay reproducible). Part of the cross-repo dependency security program (AndyFooBlah/andy-private-docs#57).
+- 2026-11-08T18:57Z [step] Dependency program phase 2 (AndyFooBlah/andy-private-docs#57): CI `verify` now pins actions by SHA, installs both `bridge/` (`npm ci`) and `harness/` (`uv sync --locked`, `uv run --locked`) so Dependabot security PRs in either tree are exercised, gains `workflow_dispatch` (pr input), and ends with the shared deps-merge / deps-fix jobs (tier research, no deploy). Added the deps-toolchain action and deps-fixer workflow.
