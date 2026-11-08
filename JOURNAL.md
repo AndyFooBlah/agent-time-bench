@@ -55,3 +55,4 @@ one's timestamp. Synced daily to `andy-private-docs/journals/`.
   2026-10-16 journal rollout, independently, because the same command was used in each.
 - 2026-10-17T04:52Z [decision] Corrected by appending rather than editing the entries above, per the append-only
   rule.
+- 2026-11-08T17:32Z [step] Turned on Dependabot alerts and security updates, and added a standard `.github/dependabot.yml`: security updates only (routine version updates off so results stay reproducible). Part of the cross-repo dependency security program (AndyFooBlah/andy-private-docs#57).
