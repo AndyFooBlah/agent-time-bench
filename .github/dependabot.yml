@@ -1,0 +1,31 @@
+# Standard Dependabot config, generated for the dependency security program
+# (AndyFooBlah/andy-private-docs#57; policy in andy-private-docs deps/POLICY.md).
+# Security updates ignore the schedule, the cooldown and the PR limit: they open
+# as soon as GitHub publishes an advisory with a fix.
+# Research repo: routine version updates are off so results stay reproducible.
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: "/bridge"
+    schedule:
+      interval: weekly
+      day: monday
+      time: "06:00"
+      timezone: America/Los_Angeles
+    open-pull-requests-limit: 0
+  - package-ecosystem: uv
+    directory: "/harness"
+    schedule:
+      interval: weekly
+      day: monday
+      time: "06:00"
+      timezone: America/Los_Angeles
+    open-pull-requests-limit: 0
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: weekly
+      day: monday
+      time: "06:00"
+      timezone: America/Los_Angeles
+    open-pull-requests-limit: 0
